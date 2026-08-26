@@ -1,0 +1,73 @@
+import { runArmNoRescue, runArmFlatDiscount, runArmSettle, generateShoppers, formatReport } from "../metrics/harness.js";
+import type { ArmResult } from "../metrics/harness.js";
+import { DEFAULT_POLICY } from "../types/policy.js";
+import { writeFileSync, mkdirSync } from "node:fs";
+
+const N = 120;
+const SEED = 42;
+const shoppers = generateShoppers(N, SEED);
+
+const noRescue = runArmNoRescue(shoppers);
+const flat = runArmFlatDiscount(shoppers);
+
+async function settleAtFloor(floorMarginPct: number): Promise<ArmResult> {
+  return runArmSettle(shoppers, { ...DEFAULT_POLICY, floorMarginPct });
+}
+
+const primary = [noRescue, flat, await settleAtFloor(20)];
+const ceiling = [runArmNoRescue(shoppers), flat, await settleAtFloor(12)];
+const floorSweep: Array<{ floorMarginPct: number; closes: number; conversionPct: number; ownCostDiscountPaise: number }> = [];
+for (const floor of [12, 20, 25, 30]) {
+  const r = await settleAtFloor(floor);
+  floorSweep.push({ floorMarginPct: floor, closes: r.closes, conversionPct: r.conversionPct, ownCostDiscountPaise: r.ownCostDiscountPaise });
+}
+
+const OWN_MONEY_ONLY = [{ step: "price_cut" as const, enabled: true }];
+const ownMoneySweep: Array<{ floorMarginPct: number; closes: number; conversionPct: number; ownCostDiscountPaise: number }> = [];
+for (const floor of [12, 20, 25, 30]) {
+  const r = await runArmSettle(shoppers, { ...DEFAULT_POLICY, floorMarginPct: floor, waterfall: OWN_MONEY_ONLY });
+  ownMoneySweep.push({ floorMarginPct: floor, closes: r.closes, conversionPct: r.conversionPct, ownCostDiscountPaise: r.ownCostDiscountPaise });
+}
+
+function deltas(a: ArmResult, b: ArmResult) {
+  return {
+    conversionDeltaPct: Math.round((a.conversionPct - b.conversionPct) * 10) / 10,
+    ownCostSavingPct: b.ownCostDiscountPaise === 0 ? null : Math.round((1 - a.ownCostDiscountPaise / b.ownCostDiscountPaise) * 1000) / 10,
+    profitDeltaPaise: a.grossProfitPaise - b.grossProfitPaise,
+  };
+}
+
+console.log(`Synthetic population: ${N} shoppers (seed ${SEED}, reproducible)\n`);
+console.log("=== PRIMARY TABLE — realistic floor margin (20%) ===");
+console.log(formatReport(primary));
+console.log("\n=== CEILING TABLE — generous margins (floor 12%), labelled ceiling, not headline ===");
+console.log(formatReport(ceiling));
+console.log("\n=== FLOOR SWEEP — full waterfall (external funding active) ===");
+for (const s of floorSweep) {
+  console.log(`floor=${String(s.floorMarginPct).padStart(2)}%  closes=${s.closes}  conv=${s.conversionPct}%  own-cost=₹${(s.ownCostDiscountPaise / 100).toLocaleString("en-IN")}`);
+}
+console.log("\n=== OWN-MONEY-ONLY SWEEP — campaigns/rail offers disabled; floor now binds ===");
+for (const s of ownMoneySweep) {
+  console.log(`floor=${String(s.floorMarginPct).padStart(2)}%  closes=${s.closes}  conv=${s.conversionPct}%  own-cost=₹${(s.ownCostDiscountPaise / 100).toLocaleString("en-IN")}`);
+}
+
+mkdirSync("docs", { recursive: true });
+writeFileSync(
+  "docs/metrics-report.json",
+  JSON.stringify(
+    {
+      populationSize: N,
+      seed: SEED,
+      note: "Primary table uses floor margin 20% as the realistic operating point. The 12%-floor run is retained as an explicitly-labelled ceiling, not a claim.",
+      primaryFloorMarginPct: 20,
+      armsPrimary: primary,
+      armsCeiling12: ceiling,
+      floorSweep,
+      ownMoneyOnlySweep: ownMoneySweep,
+      settleVsFlatPrimary: deltas(primary[2]!, flat),
+    },
+    null,
+    2
+  )
+);
+console.log("\nSaved → docs/metrics-report.json");

@@ -1,0 +1,28 @@
+# deps
+node_modules/
+
+# env & secrets — never commit Razorpay keys
+.env
+.env.*
+!.env.example
+
+# build artifacts
+dist/
+build/
+.next/
+out/
+
+# test / coverage
+coverage/
+playwright-report/
+test-results/
+
+# os junk
+Thumbs.db
+.DS_Store
+
+# logs
+*.log
+
+# local data (audit logs, synthetic runs)
+data/local/

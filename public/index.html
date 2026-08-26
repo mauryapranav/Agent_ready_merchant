@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settle — Merchant Console</title>
+<style>
+  :root{
+    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
+    --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
+    --line:#E7E5E4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;}
+  .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .layout{display:flex;min-height:100vh}
+  nav{width:200px;background:var(--card);border-right:1px solid var(--line);padding:20px 12px;flex-shrink:0}
+  .brand{font-weight:700;font-size:16px;margin-bottom:4px}
+  .brand span{color:var(--accent)}
+  .brand-sub{color:var(--muted);font-size:11px;margin-bottom:24px}
+  nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;margin-bottom:2px}
+  nav a.active{background:#F0FDFA;color:var(--accent);font-weight:600}
+  main{flex:1;padding:28px 32px;max-width:1200px}
+  h1{font-size:20px;margin:0 0 4px}
+  .page-sub{color:var(--muted);margin-bottom:22px}
+  .cards{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:170px}
+  .card .kpi{font-size:20px;font-weight:700}
+  .card .lbl{color:var(--muted);font-size:12px;margin-top:2px}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th{position:sticky;top:0;background:#F5F5F4;text-align:left;font-size:12px;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+  td{padding:10px 12px;border-bottom:1px solid var(--line)}
+  tr.rowbtn:hover td{background:#F5F5F4;cursor:pointer}
+  td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .chip.ok{background:#F0FDF4;color:var(--ok)} .chip.ok i{background:var(--ok)}
+  .chip.bad{background:#FEF2F2;color:var(--bad)} .chip.bad i{background:var(--bad)}
+  .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
+  .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .grid2{display:grid;grid-template-columns:1fr 320px;gap:20px}
+  .skus label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink);font-size:13px;text-transform:none}
+  .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
+  .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
+  .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
+  .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
+  .trace{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .tcol{background:#FAFAF9;border:1px solid var(--line);border-radius:8px;padding:14px}
+  .tcol h3{margin:0 0 10px;font-size:13px}
+  .tev{display:flex;gap:10px;margin-bottom:8px;align-items:baseline}
+  .tev i{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .tev .tk{font-weight:600;font-size:12.5px;min-width:130px}
+  .tev .tv{color:var(--muted);font-size:12px;word-break:break-all}
+  .verify-badge{font-size:12px;font-weight:600}
+  .verify-badge.ok{color:var(--ok)} .verify-badge.bad{color:var(--bad)}
+  .hidden{display:none}
+  .muted{color:var(--muted)}
+  .insight-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav>
+    <div class="brand">Set<span>t</span>le</div>
+    <div class="brand-sub">Agentic checkout rescue</div>
+    <a href="#" data-tab="feed" class="active">Live feed</a>
+    <a href="#" data-tab="run">Run session</a>
+    <a href="#" data-tab="policy">Policy &amp; waterfall</a>
+    <a href="#" data-tab="insights">Insights</a>
+  </nav>
+  <main>
+    <section id="tab-feed">
+      <h1>Rescue feed</h1>
+      <div class="page-sub">Every AI-buyer checkout this merchant engine has touched.</div>
+      <div class="cards">
+        <div class="card"><div class="kpi mono" id="metric-rescued-revenue">—</div><div class="lbl">Revenue rescued</div></div>
+        <div class="card"><div class="kpi mono" id="metric-own-cost">—</div><div class="lbl">Own-cost discounts given</div></div>
+        <div class="card"><div class="kpi mono" id="metric-funded">—</div><div class="lbl">Offers funded by banks/brands</div></div>
+        <div class="card"><div class="kpi mono" id="metric-lost">—</div><div class="lbl">Lost revenue (aborts)</div></div>
+      </div>
+      <table data-testid="feed-table">
+        <thead><tr><th>Session</th><th>Items</th><th style="text-align:right">Cart</th><th style="text-align:right">Gap</th><th>Mechanism</th><th>Outcome</th></tr></thead>
+        <tbody id="feed-body"></tbody>
+      </table>
+    </section>
+
+    <section id="tab-run" class="hidden">
+      <h1>Run a session</h1>
+      <div class="page-sub">Simulate an AI buyer hitting your storefront.</div>
+      <div class="panel">
+        <label for="intent-input">Buyer's natural-language intent</label>
+        <input type="text" id="intent-input" data-testid="intent-input"
+          value="Get me running shoes under ₹5000. Extras only from Jockey.">
+        <p class="muted" style="margin:6px 0 0;font-size:12px">'can stretch by N if …' sets your stretch rule &nbsp;·&nbsp; 'extras only from …' or 'extra stuff only if they're from …' sets which attachments you allow</p>
+        <div class="grid2">
+          <div>
+            <label>Cart contents</label>
+            <div class="skus" id="sku-list"></div>
+          </div>
+          <div>
+            <label>Floor margin %</label>
+            <input type="number" id="floor-margin" data-testid="floor-margin" value="12" min="0" max="90">
+            <label>Daily discount budget (₹)</label>
+            <input type="number" id="daily-budget" data-testid="daily-budget" value="5000">
+            <label>Decline payment on rails</label>
+            <div class="skus">
+              <label><input type="checkbox" data-testid="fail-rail" value="upi"> UPI</label>
+              <label><input type="checkbox" data-testid="fail-rail" value="card"> Card</label>
+            </div>
+            <label>Affinity sharing consent</label>
+            <select id="sharing" data-testid="sharing">
+              <option value="anonymized_topk">Granted (top-K brands)</option>
+              <option value="none">Revoked</option>
+            </select>
+            <label>Fault injection (failure demos)</label>
+            <div class="skus">
+              <label><input type="checkbox" id="fi-expire" data-testid="fi-expire"> Expire offers instantly</label>
+              <label><input type="checkbox" id="fi-drift" data-testid="fi-drift"> Corrupt cart after consent</label>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:18px">
+          <button id="run-btn" data-testid="run-btn">Run session</button>
+        </div>
+        <div id="result-banner" class="banner" data-testid="result-banner"></div>
+        <div id="trace-wrap"></div>
+      </div>
+    </section>
+
+    <section id="tab-policy" class="hidden">
+      <h1>Policy &amp; waterfall</h1>
+      <div class="page-sub">How the merchant engine is allowed to spend money when rescuing a sale.</div>
+      <div class="panel" id="policy-view"></div>
+    </section>
+
+    <section id="tab-insights" class="hidden">
+      <h1>Insights</h1>
+      <div class="page-sub">Aggregated only from buyers who granted anonymized top-K affinity sharing. Revoking consent removes them instantly.</div>
+      <div class="panel" id="insights-view"></div>
+    </section>
+  </main>
+</div>
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {minimumFractionDigits: 0});
+let catalog = [];
+
+document.querySelectorAll("nav a").forEach(a => a.addEventListener("click", (e) => {
+  e.preventDefault();
+  document.querySelectorAll("nav a").forEach(x => x.classList.remove("active"));
+  a.classList.add("active");
+  ["feed","run","policy","insights"].forEach(t => $("#tab-" + t).classList.toggle("hidden", t !== a.dataset.tab));
+  if (a.dataset.tab === "policy") renderPolicy();
+  if (a.dataset.tab === "insights") renderInsights();
+}));
+
+async function loadCatalog() {
+  const res = await fetch("/api/catalog");
+  const data = await res.json();
+  catalog = data.catalog;
+  const list = $("#sku-list");
+  list.innerHTML = "";
+  for (const p of catalog) {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" name="sku" value="${p.sku}"> ${p.title} <span class="mono muted">${paise(p.pricePaise)}</span>`;
+    list.appendChild(l);
+  }
+  const nike = list.querySelector('input[value="nike-peg-41"]');
+  if (nike) nike.checked = true;
+}
+
+function chipFor(outcome) {
+  const map = { PAID:["ok","RESCUED"], DIRECT_PAID:["ok","PAID"], ABORTED:["bad","ABORTED"], PAUSED_FOR_HUMAN:["warn","PAUSED"] };
+  const [cls, txt] = map[outcome] ?? ["info", outcome];
+  return `<span class="chip ${cls}"><i></i>${txt}</span>`;
+}
+
+async function refreshFeed() {
+  const res = await fetch("/api/feed");
+  const { records, metrics } = await res.json();
+  $("#metric-rescued-revenue").textContent = paise(metrics.rescuedRevenuePaise);
+  $("#metric-own-cost").textContent = paise(metrics.ownCostDiscountPaise);
+  $("#metric-funded").textContent = String(metrics.fundedDiscountSessions);
+  $("#metric-lost").textContent = paise(metrics.lostRevenuePaise);
+  const tb = $("#feed-body");
+  tb.innerHTML = "";
+  for (const r of records) {
+    const tr = document.createElement("tr");
+    tr.className = "rowbtn";
+    tr.dataset.session = r.sessionId;
+    tr.innerHTML = `
+      <td class="mono">${esc(r.sessionId.slice(0,10))}</td>
+      <td>${esc(r.itemsLabel)}${r.crossSoldSku ? ' <span class="chip ok" title="Cross-sell accepted within buyer cap"><i></i>+1 upsell</span>' : ""}</td>
+      <td class="num">${paise(r.cartTotalPaise)}</td>
+      <td class="num">${r.gapPaise ? paise(r.gapPaise) : "—"}</td>
+      <td>${esc(r.mechanismStep ?? "—")}${r.fundedBy && r.fundedBy !== "merchant_margin" ? ` <span class="muted">(${esc(r.fundedBy)})</span>` : ""}</td>
+      <td>${chipFor(r.outcome)}</td>`;
+    tr.addEventListener("click", () => showTrace(r));
+    tb.appendChild(tr);
+  }
+}
+
+function evLine(ev) {
+  let detail = "";
+  try { detail = JSON.stringify(ev.event); } catch {}
+  return `<div class="tev"><i style="background:${ev.side === "buyer" ? "#0F766E" : "#1D4ED8"}"></i>
+    <span class="tk">${esc(ev.kind)}</span><span class="tv">${esc(detail.slice(0,140))}</span></div>`;
+}
+
+function showTrace(r) {
+  document.querySelector('nav a[data-tab="run"]').click();
+  const banner = $("#result-banner");
+  banner.className = "banner " + (["PAID","DIRECT_PAID"].includes(r.outcome) ? "ok" : r.outcome === "ABORTED" ? "bad" : "warn");
+  const rzp = r.razorpayOrderId ? " · RZP " + r.razorpayOrderId.slice(0, 14) : "";
+  banner.textContent = `${r.sessionId} → ${r.outcome}${r.paidVia ? " via " + r.paidVia.toUpperCase() : ""}${rzp}${r.reason ? " (" + r.reason + ")" : ""}`;
+  const sigBadge = (s) => s ? ' <span class="verify-badge ok">ed25519 signed</span>' : "";
+  $("#trace-wrap").innerHTML = `
+    <div class="trace" data-testid="trace">
+      <div class="tcol"><h3>Buyer ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.buyer)}</h3>
+        ${r.buyerEvents.map(evLine).join("")}</div>
+      <div class="tcol"><h3>Merchant ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.merchant)}</h3>
+        ${r.merchantEvents.map(evLine).join("")}</div>
+    </div>` +
+    (r.receipt ? `<div class="panel" style="margin-top:16px" data-testid="receipt"><h3 style="margin:0 0 8px;font-size:13px">Session receipt <span class="chip info"><i></i>AI-generated · post-hoc · outside audit chain</span></h3><p style="margin:0">${esc(r.receipt.text)}</p></div>` : "");
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+$("#run-btn").addEventListener("click", async () => {
+  const btn = $("#run-btn");
+  btn.disabled = true;
+  const skus = [...document.querySelectorAll('input[name="sku"]:checked')].map(i => ({ sku: i.value, qty: 1 }));
+  const failRails = [...document.querySelectorAll('input[data-testid="fail-rail"]:checked')].map(i => i.value);
+  const body = {
+    intentText: $("#intent-input").value,
+    skus,
+    failRails,
+    policyOverrides: {
+      floorMarginPct: Number($("#floor-margin").value),
+      dailyReleaseBudgetPaise: Math.round(Number($("#daily-budget").value) * 100),
+    },
+    consentSharing: $("#sharing").value,
+    offerTtlMs: $("#fi-expire").checked ? 0 : undefined,
+    forceDrift: $("#fi-drift").checked,
+  };
+  const res = await fetch("/api/session", { method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify(body) });
+  const data = await res.json();
+  btn.disabled = false;
+  if (!res.ok) {
+    const b = $("#result-banner"); b.className = "banner bad"; b.textContent = data.error ?? "Session failed";
+    return;
+  }
+  showTrace({
+    sessionId: data.sessionId, outcome: data.outcome, paidVia: data.paidVia, reason: data.reason,
+    chainsVerified: data.verified, buyerEvents: data.buyerEvents, merchantEvents: data.merchantEvents,
+    tipSignatures: data.tipSignatures, razorpayOrderId: data.razorpayOrderId, receipt: data.receipt,
+  });
+  refreshFeed();
+});
+
+function renderPolicy() {
+  $("#policy-view").innerHTML = `
+    <p><strong>The waterfall.</strong> When an AI buyer is over budget, the engine tries funding sources in cost-to-merchant order:</p>
+    <div class="insight-row"><span>1 · Brand campaign (brand-funded)</span><span class="chip ok"><i></i>costs ₹0</span></div>
+    <div class="insight-row"><span>2 · Rail offer (bank/network-funded)</span><span class="chip ok"><i></i>costs ₹0</span></div>
+    <div class="insight-row"><span>3 · Bundle swap (margin-neutral)</span><span class="chip warn"><i></i>neutral</span></div>
+    <div class="insight-row"><span>4 · Direct price cut (own money)</span><span class="chip bad"><i></i>last resort</span></div>
+    <p class="muted" style="margin-top:14px">Guardrails always apply: floor margin, daily release budget, per-user cooldown. If nothing profitable clears the gate, the sale is lost honestly instead of bought at any price. Partial-rescue round: half-gap offers are surfaced so pre-authorised buyer flex can cover the rest.</p>`;
+}
+
+async function renderInsights() {
+  const res = await fetch("/api/feed");
+  const { records } = await res.json();
+  const brandWins = {};
+  for (const r of records) {
+    if (!["PAID"].includes(r.outcome)) continue;
+    for (const p of catalog) if (r.itemsLabel.includes(p.title.split(" ")[0])) brandWins[p.brand] = (brandWins[p.brand] ?? 0) + 1;
+  }
+  const rows = Object.entries(brandWins).sort((a,b) => b[1]-a[1]).map(([b,c]) =>
+    `<div class="insight-row"><span>${b}</span><span class="mono">${c} rescued close${c>1?"s":""}</span></div>`).join("");
+  $("#insights-view").innerHTML = rows || '<span class="muted">No rescued sessions yet. Run some sessions first.</span>';
+}
+
+loadCatalog().then(refreshFeed).then(() => setInterval(refreshFeed, 8000));
+</script>
+</body>
+</html>
