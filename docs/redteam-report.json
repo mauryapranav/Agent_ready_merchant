@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-08-26T11:27:12.161Z",
+  "adversarialSessions": 6,
+  "blockedAtParse": 1,
+  "gateViolations": 0,
+  "violations": [],
+  "llmGeneratedIntents": 0,
+  "notes": [
+    "LLM generation unavailable — deterministic corpus only"
+  ]
+}
