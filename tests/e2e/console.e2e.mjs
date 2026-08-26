@@ -108,6 +108,32 @@ async function main() {
     await p.screenshot({ path: "e2e-artifacts/05-consent-revoked.png" });
   });
 
+  await runScenario(page, "06 buyer page voice-fallback rescue", async (p) => {
+    await p.goto(`${BASE}/buyer`, { waitUntil: "domcontentloaded" });
+    await p.waitForSelector('[data-testid="buyer-intent"]', { state: "visible", timeout: 15000 });
+    const micVisible = await p.isVisible('[data-testid="mic-btn"]');
+    if (!micVisible) throw new Error("mic button should exist in Chromium");
+    await p.fill('[data-testid="buyer-intent"]', "Get me running shoes under ₹4000. Extras only from Jockey.");
+    await p.click('[data-testid="parse-btn"]');
+    await p.waitForSelector('[data-testid="intent-chips"]:not(.hidden)', { timeout: 10000 });
+    const chips = await p.textContent('[data-testid="intent-chips"]');
+    if (!/Cap ₹4,000/.test(chips ?? "")) throw new Error(`cap chip missing, got: ${chips}`);
+    if (!/deterministic parser|LLM · validated/.test(chips ?? "")) throw new Error("parser badge missing on chips");
+    await p.click('[data-testid="run-btn"]');
+    await p.waitForSelector('[data-testid="buyer-banner"].ok, [data-testid="buyer-banner"].bad, [data-testid="buyer-banner"].warn', { timeout: 15000 });
+    const banner = await p.textContent('[data-testid="buyer-banner"]');
+    if (!/PAID/.test(banner ?? "")) throw new Error(`expected PAID on buyer page, got: ${banner}`);
+    const timeline = await p.textContent('[data-testid="timeline"]');
+    if (!/mandate was bound/i.test(timeline ?? "")) throw new Error("timeline missing mandate step");
+    if (!/Settlement/i.test(timeline ?? "")) throw new Error("timeline missing settlement step");
+    const bill = await p.textContent('[data-testid="bill"]');
+    if (!/You pay/i.test(bill ?? "")) throw new Error("bill missing total row");
+    if (!/Why:/i.test(bill ?? "") && !/Rescue relief/i.test(bill ?? "")) throw new Error("bill missing why-line or relief line");
+    const trust = await p.textContent('[data-testid="trust-line"]');
+    if (!/verified/.test(trust ?? "")) throw new Error("trust line missing chain verification");
+    await p.screenshot({ path: "e2e-artifacts/06-buyer-page.png" });
+  });
+
   await browser.close();
   server.kill();
 

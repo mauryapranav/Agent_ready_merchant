@@ -73,6 +73,45 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/buyer") {
+    const html = readFileSync(join(__dirname, "../../public/buyer.html"), "utf8");
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(html);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/parse") {
+    const clientKey = req.socket.remoteAddress ?? "unknown";
+    if (!allowRequest(`parse:${clientKey}`)) {
+      send(res, 429, { error: "Too many requests. Slow down." });
+      return;
+    }
+    const body = await readJson(req);
+    const intentText = body.intentText?.trim();
+    if (!intentText) {
+      send(res, 400, { error: "intentText is required." });
+      return;
+    }
+    try {
+      const { parsed, parsedBy } = await parseIntentWithFallback(intentText);
+      send(res, 200, {
+        parsedBy,
+        capPaise: parsed.capPaise,
+        maxStretchPaise: parsed.maxStretchPaise,
+        softCriteria: parsed.softCriteria,
+        attachmentCriteria: parsed.attachmentCriteria,
+        allowedRails: parsed.allowedRails,
+      });
+    } catch (e) {
+      if (e instanceof ParseError) {
+        send(res, 400, { error: e.message });
+        return;
+      }
+      throw e;
+    }
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/catalog") {
     send(res, 200, { catalog: CATALOG, offers: OFFER_SURFACE });
     return;

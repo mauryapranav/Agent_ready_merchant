@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settle — Buyer Agent</title>
+<style>
+  :root{
+    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
+    --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
+    --line:#E7E5E4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;}
+  .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
+  .brand{font-weight:700;font-size:16px}
+  .brand span{color:var(--accent)}
+  header .side{font-size:12px;color:var(--muted)}
+  header .side a{color:var(--accent);text-decoration:none;font-weight:600}
+  main{max-width:860px;margin:0 auto;padding:26px 20px 60px}
+  h1{font-size:19px;margin:0 0 4px}
+  .page-sub{color:var(--muted);margin-bottom:20px;font-size:13px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:18px}
+  .panel h2{margin:0 0 4px;font-size:14px}
+  .panel .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
+  textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;resize:vertical}
+  .intent-row{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  #mic-btn.listening{background:var(--bad)}
+  .hint{color:var(--muted);font-size:11.5px;margin-top:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .chip.ok{background:#F0FDF4;color:var(--ok)} .chip.ok i{background:var(--ok)}
+  .chip.bad{background:#FEF2F2;color:var(--bad)} .chip.bad i{background:var(--bad)}
+  .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
+  .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
+  .chip.plain{background:#F5F5F4;color:var(--ink)}
+  .skus label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+  .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
+  .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
+  .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
+  .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
+  ol.timeline{list-style:none;margin:0;padding:0}
+  ol.timeline li{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+  ol.timeline li:last-child{border-bottom:0}
+  ol.timeline .n{color:var(--muted);font-size:11px;min-width:20px;text-align:right}
+  ol.timeline .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;align-self:center}
+  ol.timeline .msg{font-size:13px}
+  ol.timeline .note{color:var(--muted);font-size:12px;margin-top:2px}
+  table.bill{width:100%;border-collapse:collapse;margin-top:6px}
+  table.bill td{padding:7px 4px;border-bottom:1px dashed var(--line);font-size:13px}
+  table.bill td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  table.bill tr.total td{font-weight:700;border-bottom:0;padding-top:10px}
+  table.bill tr.relief td{color:var(--ok)}
+  table.bill .why{color:var(--muted);font-size:11.5px;display:block;margin-top:1px}
+  .verify-badge{font-size:12px;font-weight:600}
+  .verify-badge.ok{color:var(--ok)} .verify-badge.bad{color:var(--bad)}
+  .receipt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  .receipt p{margin:6px 0 0;font-size:13px;color:#44403C}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Set<span>t</span>le · buyer agent</div>
+  <div class="side">You are shopping through your AI agent. <a href="/">Open merchant console →</a></div>
+</header>
+<main>
+  <h1>Shop by voice, watch the negotiation</h1>
+  <p class="page-sub">Speak or type what you want and what you won't spend past. Your mandate does the talking — Settle's merchant engine either fits inside it, or loses the sale honestly.</p>
+
+  <section class="panel">
+    <h2>Your intent</h2>
+    <p class="sub">One sentence. Include a budget ("under ₹5000"), optionally a stretch rule and an extras rule.</p>
+    <textarea id="buyer-intent" data-testid="buyer-intent">Get me running shoes under ₹5000. Extras only from Jockey.</textarea>
+    <div class="intent-row">
+      <button id="mic-btn" data-testid="mic-btn" class="ghost">🎙 Speak</button>
+      <button id="parse-btn" data-testid="parse-btn" class="ghost">Read my mandate back</button>
+    </div>
+    <div class="chips hidden" id="intent-chips" data-testid="intent-chips"></div>
+    <p class="hint hidden" id="voice-note"></p>
+  </section>
+
+  <section class="panel">
+    <h2>Your cart</h2>
+    <p class="sub">Your agent assembled this from the merchant's catalog.</p>
+    <div class="skus" id="sku-list" data-testid="sku-list"></div>
+    <div style="margin-top:14px"><button id="run-btn" data-testid="run-btn">Run negotiation</button></div>
+  </section>
+
+  <div id="result-banner" class="banner" data-testid="buyer-banner"></div>
+
+  <section class="panel hidden" id="timeline-panel">
+    <h2>Negotiation, step by step</h2>
+    <p class="sub">Every step below is an entry in your hash-chained audit ledger.</p>
+    <ol class="timeline" id="timeline" data-testid="timeline"></ol>
+  </section>
+
+  <section class="panel hidden" id="bill-panel">
+    <h2>The bill — and why every line is there</h2>
+    <table class="bill" id="bill" data-testid="bill"></table>
+    <div style="margin-top:12px" id="trust-line" data-testid="trust-line"></div>
+    <div class="receipt hidden" id="receipt-wrap" data-testid="receipt">
+      <span class="chip info"><i></i>AI-generated receipt · post-hoc · outside audit chain</span>
+      <p id="receipt-text"></p>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {maximumFractionDigits: 0});
+let catalog = [];
+let lastRun = null;
+
+async function loadCatalog() {
+  const res = await fetch("/api/catalog");
+  const data = await res.json();
+  catalog = data.catalog;
+  const list = $("#sku-list");
+  list.innerHTML = "";
+  for (const p of catalog) {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" name="sku" value="${p.sku}"> ${esc(p.title)} <span class="mono muted">${paise(p.pricePaise)}</span>`;
+    list.appendChild(l);
+  }
+  const nike = list.querySelector('input[value="nike-peg-41"]');
+  if (nike) nike.checked = true;
+}
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+  const rec = new SpeechRecognition();
+  rec.lang = "en-IN";
+  rec.interimResults = true;
+  rec.continuous = false;
+  rec.onresult = (e) => {
+    $("#buyer-intent").value = [...e.results].map(r => r[0].transcript).join("");
+  };
+  rec.onend = () => setListening(false);
+  rec.onerror = () => setListening(false);
+  $("#mic-btn").addEventListener("click", () => {
+    if ($("#mic-btn").classList.contains("listening")) { rec.stop(); setListening(false); }
+    else { setListening(true); rec.start(); }
+  });
+} else {
+  $("#mic-btn").classList.add("hidden");
+  const note = $("#voice-note");
+  note.classList.remove("hidden");
+  note.textContent = "Voice input isn't available in this browser — typing works exactly the same.";
+}
+
+function setListening(on) {
+  const b = $("#mic-btn");
+  b.classList.toggle("listening", on);
+  b.textContent = on ? "● Listening…" : "🎙 Speak";
+}
+
+$("#parse-btn").addEventListener("click", async () => {
+  const btn = $("#parse-btn");
+  btn.disabled = true;
+  try {
+    const res = await fetch("/api/parse", {
+      method: "POST", headers: {"content-type":"application/json"},
+      body: JSON.stringify({ intentText: $("#buyer-intent").value }),
+    });
+    const data = await res.json();
+    const wrap = $("#intent-chips");
+    wrap.classList.remove("hidden");
+    if (!res.ok) {
+      wrap.innerHTML = `<span class="chip bad"><i></i>${esc(data.error ?? "Could not read that")}</span>`;
+      return;
+    }
+    const bits = [`Cap ${paise(data.capPaise)}`];
+    if (data.maxStretchPaise !== null && data.maxStretchPaise !== undefined) bits.push(`Can stretch ${paise(data.maxStretchPaise)} if conditions match`);
+    for (const c of data.softCriteria ?? []) bits.push(`Prefers ${esc(c.value)}`);
+    for (const c of data.attachmentCriteria ?? []) bits.push(`Extras only from ${esc(c.value)}`);
+    bits.push(`Rails: ${(data.allowedRails ?? []).join(", ")}`);
+    wrap.innerHTML =
+      bits.map(b => `<span class="chip plain">${b}</span>`).join("") +
+      `<span class="chip info"><i></i>read by ${data.parsedBy === "llm" ? "LLM · validated" : "deterministic parser"}</span>`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#run-btn").addEventListener("click", async () => {
+  const btn = $("#run-btn");
+  btn.disabled = true;
+  const skus = [...document.querySelectorAll('#sku-list input[name="sku"]:checked')].map(i => ({ sku: i.value, qty: 1 }));
+  try {
+    const res = await fetch("/api/session", {
+      method: "POST", headers: {"content-type":"application/json"},
+      body: JSON.stringify({ intentText: $("#buyer-intent").value, skus }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const b = $("#result-banner"); b.className = "banner bad"; b.textContent = data.error ?? "Session failed";
+      return;
+    }
+    lastRun = { request: { skus }, response: data };
+    renderResult(lastRun.request, data);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function flexSuffix(flexRule) {
+  return flexRule ? ` · may stretch by ${paise(flexRule.maxStretchPaise)} on strong matches` : "";
+}
+
+const FUNDING_LABEL = {
+  brand: "the brand's funded campaign",
+  bank: "a bank-funded offer",
+  network: "a card-network-funded offer",
+  merchant_marketing: "the merchant's marketing budget",
+  merchant_margin: "the merchant's margin",
+};
+
+function humanize(ev) {
+  const e = ev.event ?? {};
+  switch (ev.kind) {
+    case "MANDATE_BOUND":
+      return { msg: `Your mandate was bound — hard cap ${paise(e.capPaise)}${flexSuffix(e.flexRule)}`,
+               note: `Mandate ${e.mandateId ?? ""}` };
+    case "CART_CONSENT":
+      return { msg: "You consented to this exact cart.", note: `cart hash ${String(e.cartHash ?? "").slice(0, 12)}…` };
+    case "INTENT_BLOCKED":
+      return { msg: `Cart is ${paise(e.gapPaise)} over your cap. Instead of walking away, the merchant was asked for options.` };
+    case "CROSS_SELL_OFFERED":
+      return { msg: `Merchant suggested one extra: ${e.title}.`, note: e.reason };
+    case "CROSS_SELL_ACCEPTED":
+      return { msg: "Extra accepted — it fits a rule you pre-approved.", note: `basis: ${e.basis}` };
+    case "CART_RECONSENTED":
+      return { msg: "Updated cart was re-consented before any payment." };
+    case "CROSS_SELL_DECLINED":
+      return { msg: `Extra declined — ${e.reason}.` };
+    case "OFFER_EVALUATED": {
+      const t = e.trace ?? {};
+      return { msg: `${e.accepted ? "Counter-offer accepted" : "Counter-offer declined"} · your gate said ${t.verdict}`, note: e.narration };
+    }
+    case "PAYMENT_ATTEMPT":
+      return e.ok
+        ? { msg: `Paid securely via ${String(e.rail).toUpperCase()} ✓`, note: e.razorpayOrderId ? `Razorpay order ${String(e.razorpayOrderId).slice(0, 18)}…` : null }
+        : { msg: `${String(e.rail).toUpperCase()} declined${e.errorCode ? ` (${e.errorCode})` : ""} — trying your next allowed rail.` };
+    case "SETTLEMENT_RESULT":
+      return { msg: `Settlement: ${e.outcome}${e.finalTotalPaise ? ` · you pay ${paise(e.finalTotalPaise)}` : ""}`, note: e.narration };
+    default:
+      return { msg: ev.kind };
+  }
+}
+
+function billRows(request, data) {
+  const bySku = Object.fromEntries(catalog.map(p => [p.sku, p]));
+  const rows = [];
+  let subtotal = 0;
+  for (const item of request.skus) {
+    const p = bySku[item.sku];
+    if (!p) continue;
+    subtotal += p.pricePaise * item.qty;
+    rows.push(`<tr><td>${esc(p.title)} × ${item.qty}</td><td class="num">${paise(p.pricePaise * item.qty)}</td></tr>`);
+  }
+  const offerEv = (data.merchantEvents ?? []).find(ev => ev.kind === "OFFER_RELEASED");
+  const offer = offerEv?.event?.offer ?? null;
+  const upEv = (data.buyerEvents ?? []).find(ev => ev.kind === "CROSS_SELL_ACCEPTED");
+  if (upEv?.event?.sku && bySku[upEv.event.sku]) {
+    const up = bySku[upEv.event.sku];
+    const why = ((data.buyerEvents ?? []).find(ev => ev.kind === "CROSS_SELL_OFFERED")?.event?.reason) ?? "fits a rule you pre-approved";
+    subtotal += up.pricePaise;
+    rows.push(`<tr><td>+ ${esc(up.title)}<span class="why">Why: ${esc(why)}</span></td><td class="num">${paise(up.pricePaise)}</td></tr>`);
+  }
+  const paid = data.finalTotalPaise ?? subtotal;
+  if (paid < subtotal) {
+    const relief = subtotal - paid;
+    const funding = FUNDING_LABEL[offer?.fundedBy] ?? "negotiated relief";
+    const own = offer?.merchantCostPaise ?? 0;
+    const mech = offer?.mechanism?.step ?? "";
+    rows.push(`<tr class="relief"><td>Rescue relief<span class="why">Paid for by ${esc(funding)} · mechanism: ${esc(mech)} · of which the merchant spent its own money: ${paise(own)}</span></td><td class="num">−${paise(relief)}</td></tr>`);
+  } else if (offer && (offer.mechanism?.step === "bundle_swap")) {
+    rows.push(`<tr><td colspan="2"><span class="why">Item swapped to an equivalent SKU so the total fit under your cap.</span></td></tr>`);
+  }
+  rows.push(`<tr class="total"><td>You pay</td><td class="num">${paise(paid)}</td></tr>`);
+  return rows.join("");
+}
+
+function renderResult(request, data) {
+  const b = $("#result-banner");
+  b.className = "banner " + (["PAID","DIRECT_PAID"].includes(data.outcome) ? "ok" : data.outcome === "ABORTED" ? "bad" : "warn");
+  const rzp = data.razorpayOrderId ? " · RZP " + String(data.razorpayOrderId).slice(0, 14) : "";
+  b.textContent = `${data.outcome}${data.paidVia ? " via " + String(data.paidVia).toUpperCase() : ""}${rzp}${data.reason ? " (" + data.reason + ")" : ""}`;
+
+  const steps = (data.buyerEvents ?? []).map(humanize);
+  $("#timeline").innerHTML = steps.map((s, i) =>
+    `<li><span class="n">${i + 1}</span><span class="dot"></span><span class="msg">${esc(s.msg)}${s.note ? `<div class="note">${esc(s.note)}</div>` : ""}</span></li>`).join("");
+  $("#timeline-panel").classList.remove("hidden");
+
+  $("#bill").innerHTML = billRows(request, data);
+  $("#trust-line").innerHTML =
+    `<span class="verify-badge ${data.verified ? "ok" : "bad"}" data-testid="verified-badge">${data.verified ? "✓ both audit chains verified" : "TAMPERED"}</span>` +
+    (data.tipSignatures?.buyer && data.tipSignatures?.merchant ? ' <span class="verify-badge ok">· ed25519 signed ledger tips</span>' : "") +
+    (data.parsedBy ? ` <span class="verify-badge" style="color:var(--muted)">· intent read by ${data.parsedBy === "llm" ? "LLM (schema-validated)" : "deterministic parser"}</span>` : "");
+  $("#bill-panel").classList.remove("hidden");
+
+  if (data.receipt?.text) {
+    $("#receipt-text").textContent = data.receipt.text;
+    $("#receipt-wrap").classList.remove("hidden");
+  } else {
+    $("#receipt-wrap").classList.add("hidden");
+  }
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+}
+
+loadCatalog();
+</script>
+</body>
+</html>
