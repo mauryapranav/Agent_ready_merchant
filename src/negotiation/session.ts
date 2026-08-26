@@ -56,7 +56,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
   buyerLedger.append("MANDATE_BOUND", { mandateId: mandate.mandateId, capPaise: mandate.hardCapPaise, flexRule: mandate.flexRule }, now);
   buyerLedger.append("CART_CONSENT", { cartHash: mandate.cartHashAtConsent }, now);
 
-  if (!cartDrifted(mandate, cart)) {
+  if (!cartHashMatches(mandate, cart)) {
     return finish(sessionId, "ABORTED", null, "CART_DRIFT", null, null, executor.name, buyerLedger, merchantLedger, now, "Cart changed after consent — refusing to pay stale prices.", keys);
   }
 
@@ -156,7 +156,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
   return finish(sessionId, "PAID", acceptedOffer.newTotalPaise, null, payment.rail, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys);
 }
 
-function cartDrifted(mandate: Mandate, cart: CartState): boolean {
+function cartHashMatches(mandate: Mandate, cart: CartState): boolean {
   return cart.hash === mandate.cartHashAtConsent;
 }
 

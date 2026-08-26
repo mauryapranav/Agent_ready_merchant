@@ -142,7 +142,7 @@
 
     <section id="tab-insights" class="hidden">
       <h1>Insights</h1>
-      <div class="page-sub">Aggregated only from buyers who granted anonymized top-K affinity sharing. Revoking consent removes them instantly.</div>
+      <div class="page-sub">Brand affinity aggregated only from rescued sessions whose mandate declared anonymized top-K sharing. Sessions without consent never enter this view.</div>
       <div class="panel" id="insights-view"></div>
     </section>
   </main>
@@ -280,14 +280,24 @@ function renderPolicy() {
 async function renderInsights() {
   const res = await fetch("/api/feed");
   const { records } = await res.json();
+  const bySku = Object.fromEntries(catalog.map(p => [p.sku, p]));
   const brandWins = {};
+  let consented = 0;
   for (const r of records) {
-    if (!["PAID"].includes(r.outcome)) continue;
-    for (const p of catalog) if (r.itemsLabel.includes(p.title.split(" ")[0])) brandWins[p.brand] = (brandWins[p.brand] ?? 0) + 1;
+    if (r.outcome !== "PAID") continue;
+    if (r.consentSharing !== "anonymized_topk") continue;
+    consented += 1;
+    for (const item of (r.skus ?? [])) {
+      const p = bySku[item.sku];
+      if (p) brandWins[p.brand] = (brandWins[p.brand] ?? 0) + item.qty;
+    }
   }
   const rows = Object.entries(brandWins).sort((a,b) => b[1]-a[1]).map(([b,c]) =>
-    `<div class="insight-row"><span>${b}</span><span class="mono">${c} rescued close${c>1?"s":""}</span></div>`).join("");
-  $("#insights-view").innerHTML = rows || '<span class="muted">No rescued sessions yet. Run some sessions first.</span>';
+    `<div class="insight-row"><span>${b}</span><span class="mono">${c} rescued unit${c>1?"s":""}</span></div>`).join("");
+  const scope = consented > 0
+    ? `<div class="muted" style="margin-top:10px;font-size:12px">Aggregated from ${consented} rescued session${consented>1?"s":""} whose buyers granted anonymized affinity sharing. Non-consented sessions are excluded entirely.</div>`
+    : "";
+  $("#insights-view").innerHTML = (rows || '<span class="muted">No consented rescued sessions yet. Run some sessions with affinity sharing on.</span>') + scope;
 }
 
 loadCatalog().then(refreshFeed).then(() => setInterval(refreshFeed, 8000));
