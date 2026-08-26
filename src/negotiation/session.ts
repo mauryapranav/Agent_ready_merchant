@@ -8,7 +8,7 @@ import { SimulatedExecutor, type PaymentExecutor } from "../payments/executor.js
 import { evaluateCrossSell } from "../buyer/crosssell-decision.js";
 import { cartHash } from "../buyer/parser.js";
 import { pseudonymize } from "../buyer/memory.js";
-import { signTip, type SigningKeyPair } from "../audit/signing.js";
+import { signTip, signPayload, type SigningKeyPair } from "../audit/signing.js";
 
 export interface TipSignature {
   hash: string;
@@ -103,12 +103,25 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     offerTtlMs: input.offerTtlMs,
     campaigns: input.campaigns,
   });
+  const signedOfferEvent = (() => {
+    if (!wf.offer || !keys) return null;
+    const artifact = {
+      type: "settle.counter_offer.v1" as const,
+      alg: "ed25519" as const,
+      signerKeyId: input.policy.merchantId,
+      mandateId: mandate.mandateId,
+      cartHash: mandate.cartHashAtConsent,
+      offer: wf.offer,
+    };
+    return { ...artifact, signature: signPayload(artifact, keys.privateKeyPem) };
+  })();
   merchantLedger.append(
     wf.offer ? "OFFER_RELEASED" : "NO_OFFER",
     {
       sessionId,
       waterfallAttempts: wf.attempts.map((a) => ({ step: a.step, verdict: a.gate.trace.verdict })),
       offer: wf.offer,
+      signedOffer: signedOfferEvent,
     },
     now
   );

@@ -301,9 +301,11 @@ function renderResult(request, data) {
   $("#timeline-panel").classList.remove("hidden");
 
   $("#bill").innerHTML = billRows(request, data);
+  const offerSigned = (data.merchantEvents ?? []).some(e => e.event && e.event.signedOffer);
   $("#trust-line").innerHTML =
     `<span class="verify-badge ${data.verified ? "ok" : "bad"}" data-testid="verified-badge">${data.verified ? "✓ both audit chains verified" : "TAMPERED"}</span>` +
     (data.tipSignatures?.buyer && data.tipSignatures?.merchant ? ' <span class="verify-badge ok">· ed25519 signed ledger tips</span>' : "") +
+    (offerSigned ? ' <span class="verify-badge ok">· counter-offer signed by merchant (ed25519)</span>' : "") +
     (data.parsedBy ? ` <span class="verify-badge" style="color:var(--muted)">· intent read by ${data.parsedBy === "llm" ? "LLM (schema-validated)" : "deterministic parser"}</span>` : "");
   $("#bill-panel").classList.remove("hidden");
 

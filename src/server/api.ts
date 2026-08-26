@@ -117,6 +117,25 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/acp/feed") {
+    send(res, 200, {
+      protocol: "settle.agentic-feed",
+      flavor: "ACP-inspired",
+      version: "2026-08-26",
+      merchant: { id: DEFAULT_POLICY.merchantId, name: "Settle Demo Store", currency: "INR" },
+      items: CATALOG.map((p) => ({
+        id: p.sku,
+        title: p.title,
+        brand: p.brand,
+        category: p.category,
+        price: { value: p.pricePaise / 100, currency: "INR" },
+        payment_rails_supported: ["upi", "card", "netbanking", "wallet"],
+        settle_negotiation: { rescue_eligible: true, attachment_eligible: p.category !== "electronics" },
+      })),
+    });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/feed") {
     send(res, 200, { records: recentRecords(), metrics: computeMetrics() });
     return;

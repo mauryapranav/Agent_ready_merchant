@@ -224,11 +224,12 @@ function showTrace(r) {
   const parser = r.parsedBy ? " · parsed-by " + (r.parsedBy === "llm" ? "llm(validated)" : "deterministic") : "";
   banner.textContent = `${r.sessionId} → ${r.outcome}${r.paidVia ? " via " + r.paidVia.toUpperCase() : ""}${rzp}${r.reason ? " (" + r.reason + ")" : ""}${parser}`;
   const sigBadge = (s) => s ? ' <span class="verify-badge ok">ed25519 signed</span>' : "";
+  const offerSigBadge = (r) => (r.merchantEvents ?? []).some(e => e.event && e.event.signedOffer) ? ' <span class="verify-badge ok">counter-offer ed25519-signed</span>' : "";
   $("#trace-wrap").innerHTML = `
     <div class="trace" data-testid="trace">
       <div class="tcol"><h3>Buyer ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.buyer)}</h3>
         ${r.buyerEvents.map(evLine).join("")}</div>
-      <div class="tcol"><h3>Merchant ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.merchant)}</h3>
+      <div class="tcol"><h3>Merchant ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.merchant)}${offerSigBadge(r)}</h3>
         ${r.merchantEvents.map(evLine).join("")}</div>
     </div>` +
     (r.receipt ? `<div class="panel" style="margin-top:16px" data-testid="receipt"><h3 style="margin:0 0 8px;font-size:13px">Session receipt <span class="chip info"><i></i>AI-generated · post-hoc · outside audit chain</span></h3><p style="margin:0">${esc(r.receipt.text)}</p></div>` : "");
