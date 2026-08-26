@@ -220,7 +220,8 @@ function showTrace(r) {
   const banner = $("#result-banner");
   banner.className = "banner " + (["PAID","DIRECT_PAID"].includes(r.outcome) ? "ok" : r.outcome === "ABORTED" ? "bad" : "warn");
   const rzp = r.razorpayOrderId ? " · RZP " + r.razorpayOrderId.slice(0, 14) : "";
-  banner.textContent = `${r.sessionId} → ${r.outcome}${r.paidVia ? " via " + r.paidVia.toUpperCase() : ""}${rzp}${r.reason ? " (" + r.reason + ")" : ""}`;
+  const parser = r.parsedBy ? " · parsed-by " + (r.parsedBy === "llm" ? "llm(validated)" : "deterministic") : "";
+  banner.textContent = `${r.sessionId} → ${r.outcome}${r.paidVia ? " via " + r.paidVia.toUpperCase() : ""}${rzp}${r.reason ? " (" + r.reason + ")" : ""}${parser}`;
   const sigBadge = (s) => s ? ' <span class="verify-badge ok">ed25519 signed</span>' : "";
   $("#trace-wrap").innerHTML = `
     <div class="trace" data-testid="trace">
@@ -259,6 +260,7 @@ $("#run-btn").addEventListener("click", async () => {
   }
   showTrace({
     sessionId: data.sessionId, outcome: data.outcome, paidVia: data.paidVia, reason: data.reason,
+    parsedBy: data.parsedBy,
     chainsVerified: data.verified, buyerEvents: data.buyerEvents, merchantEvents: data.merchantEvents,
     tipSignatures: data.tipSignatures, razorpayOrderId: data.razorpayOrderId, receipt: data.receipt,
   });

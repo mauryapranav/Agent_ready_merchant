@@ -13,6 +13,7 @@ export interface SessionRecord {
   paidVia: string | null;
   reason: string | null;
   intentText: string;
+  parsedBy: "llm" | "deterministic";
   consentSharing: "none" | "anonymized_topk";
   skus: Array<{ sku: string; qty: number }>;
   buyerEvents: unknown[];

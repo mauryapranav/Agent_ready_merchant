@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runSession } from "../negotiation/session.js";
-import { buildMandate, parseIntentDeterministic, ParseError } from "../buyer/parser.js";
+import { buildMandate, parseIntentWithFallback, ParseError, type ParserSource } from "../buyer/parser.js";
 import { DEFAULT_POLICY, type OfferPolicy } from "../types/policy.js";
 import { productBySku } from "../merchant/data.js";
 import { CATALOG, OFFER_SURFACE } from "../merchant/data.js";
@@ -98,8 +98,9 @@ const server = createServer(async (req, res) => {
     }
 
     let parsed;
+    let parsedBy: ParserSource;
     try {
-      parsed = parseIntentDeterministic(intentText);
+      ({ parsed, parsedBy } = await parseIntentWithFallback(intentText));
     } catch (e) {
       if (e instanceof ParseError) {
         send(res, 400, { error: e.message });
@@ -162,6 +163,7 @@ const server = createServer(async (req, res) => {
       paidVia: result.paidVia,
       reason: result.reason,
       intentText,
+      parsedBy,
       consentSharing: body.consentSharing ?? "anonymized_topk",
       skus,
       buyerEvents: [...result.buyerLedger.all()],
@@ -178,6 +180,7 @@ const server = createServer(async (req, res) => {
       reason: result.reason,
       paidVia: result.paidVia,
       capPaise: mandate.hardCapPaise,
+      parsedBy,
       razorpayOrderId: result.razorpayOrderId,
       tipSignatures: result.tipSignatures,
       narration: result.buyerLedger.all().find((e) => e.kind === "SETTLEMENT_RESULT"),

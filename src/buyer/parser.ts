@@ -20,6 +20,10 @@ const CATEGORY_WORDS: Record<string, string> = {
   electronics: "electronics",
 };
 const RAIL_WORDS: Rail[] = ["upi", "card", "netbanking", "wallet"];
+const KNOWN_CATEGORIES = [...new Set(Object.values(CATEGORY_WORDS))];
+const MAX_INTENT_RUPEES = 100_000;
+
+export type ParserSource = "llm" | "deterministic";
 
 export interface ParsedIntent {
   capPaise: number;
@@ -90,7 +94,76 @@ export function parseIntentDeterministic(text: string): ParsedIntent {
   };
 }
 
-export async function parseWithLLM(text: string, opts: { baseUrl?: string; apiKey?: string; model?: string } = {}): Promise<ParsedIntent> {
+function numOrNull(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function brandsToCriteria(v: unknown): SoftCriterion[] {
+  if (!Array.isArray(v)) return [];
+  const out: SoftCriterion[] = [];
+  for (const x of v) {
+    if (typeof x !== "string") continue;
+    const hit = BRANDS.find((b) => b.toLowerCase() === x.toLowerCase());
+    if (hit && !out.some((c) => c.kind === "brand" && c.value === hit)) {
+      out.push({ kind: "brand", value: hit });
+    }
+  }
+  return out;
+}
+
+function categoriesToCriteria(v: unknown): SoftCriterion[] {
+  if (!Array.isArray(v)) return [];
+  const out: SoftCriterion[] = [];
+  for (const x of v) {
+    if (typeof x !== "string") continue;
+    const hit = KNOWN_CATEGORIES.find((c) => c === x.toLowerCase());
+    if (hit && !out.some((c) => c.kind === "category" && c.value === hit)) {
+      out.push({ kind: "category", value: hit });
+    }
+  }
+  return out;
+}
+
+export function parsedIntentFromLlm(j: unknown): ParsedIntent {
+  if (typeof j !== "object" || j === null || Array.isArray(j)) {
+    throw new ParseError("LLM intent payload is not an object.");
+  }
+  const o = j as Record<string, unknown>;
+
+  const cap = numOrNull(o.cap);
+  if (cap === null || cap < 1 || cap > MAX_INTENT_RUPEES) {
+    throw new ParseError("LLM cap failed validation.");
+  }
+  const stretchRaw = numOrNull(o.max_stretch);
+  if (stretchRaw !== null && (stretchRaw < 0 || stretchRaw > MAX_INTENT_RUPEES)) {
+    throw new ParseError("LLM stretch failed validation.");
+  }
+
+  const softCriteria = [...brandsToCriteria(o.brands), ...categoriesToCriteria(o.categories)];
+  const attachmentCriteria = [...brandsToCriteria(o.extras_brands), ...categoriesToCriteria(o.extras_categories)];
+
+  let allowedRails = Array.isArray(o.rails)
+    ? o.rails.filter((r): r is Rail => typeof r === "string" && RAIL_WORDS.includes(r as Rail))
+    : [];
+  if (allowedRails.length === 0) {
+    allowedRails = ["upi", "card"];
+  }
+
+  const n = softCriteria.length;
+  return {
+    capPaise: rupees(cap),
+    maxStretchPaise: stretchRaw === null ? null : rupees(stretchRaw),
+    softCriteria,
+    requireSoftMatches: Math.min(n, stretchRaw !== null ? Math.max(1, n - 1) : n),
+    allowedRails,
+    attachmentCriteria,
+  };
+}
+
+async function requestLlmIntentJson(
+  text: string,
+  opts: { baseUrl?: string; apiKey?: string; model?: string } = {}
+): Promise<unknown> {
   const baseUrl = opts.baseUrl ?? process.env.LLM_BASE_URL ?? "https://api.openai.com/v1";
   const apiKey = opts.apiKey ?? process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY;
   const model = opts.model ?? process.env.LLM_MODEL ?? "gpt-4o-mini";
@@ -121,26 +194,32 @@ export async function parseWithLLM(text: string, opts: { baseUrl?: string; apiKe
   if (!raw) {
     throw new ParseError("LLM returned empty response.");
   }
-  const j = JSON.parse(raw) as { cap: number; max_stretch: number | null; brands?: string[]; categories?: string[]; rails?: string[]; extras_brands?: string[]; extras_categories?: string[] };
-  return {
-    capPaise: rupees(j.cap),
-    maxStretchPaise: j.max_stretch === null ? null : rupees(j.max_stretch),
-    softCriteria: [
-      ...(j.brands ?? []).map((b) => ({ kind: "brand" as const, value: normalizeBrand(b) })),
-      ...(j.categories ?? []).map((c) => ({ kind: "category" as const, value: c.toLowerCase() })),
-    ],
-    requireSoftMatches: 2,
-    allowedRails: (j.rails ?? []).filter((r): r is Rail => RAIL_WORDS.includes(r as Rail)),
-    attachmentCriteria: [
-      ...(j.extras_brands ?? []).map((b) => ({ kind: "brand" as const, value: normalizeBrand(b) })),
-      ...(j.extras_categories ?? []).map((c) => ({ kind: "category" as const, value: c.toLowerCase() })),
-    ],
-  };
+  return JSON.parse(raw) as unknown;
 }
 
-function normalizeBrand(b: string): string {
-  const hit = BRANDS.find((x) => x.toLowerCase() === b.toLowerCase());
-  return hit ?? b;
+export async function parseWithLLM(
+  text: string,
+  opts: { baseUrl?: string; apiKey?: string; model?: string } = {}
+): Promise<ParsedIntent> {
+  return parsedIntentFromLlm(await requestLlmIntentJson(text, opts));
+}
+
+export function llmParserConfigured(): boolean {
+  return Boolean(process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY);
+}
+
+export async function parseIntentWithFallback(
+  text: string,
+  opts: { baseUrl?: string; apiKey?: string; model?: string } = {}
+): Promise<{ parsed: ParsedIntent; parsedBy: ParserSource }> {
+  if (opts.apiKey !== undefined || llmParserConfigured()) {
+    try {
+      return { parsed: await parseWithLLM(text, opts), parsedBy: "llm" };
+    } catch {
+      return { parsed: parseIntentDeterministic(text), parsedBy: "deterministic" };
+    }
+  }
+  return { parsed: parseIntentDeterministic(text), parsedBy: "deterministic" };
 }
 
 let mandateSeq = 0;
