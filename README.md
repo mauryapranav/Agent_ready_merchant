@@ -23,7 +23,12 @@ Set `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` in `.env` to activate; without key
 
 ## Why now
 
-NPCI's UAP and the ACP/AP2/x402 race make agent-to-agent commerce the open problem of the year; Razorpay's in-app agentic pilots are already live. Protocols standardize *transport and consent* — nobody ships the *commercial intelligence* layer for agent checkouts. That's the gap Settle occupies.
+NPCI's UAP and the ACP/AP2/x402 race make agent-to-agent commerce the open problem of the year; Razorpay's in-app agentic pilots are already live. Protocols standardize *transport and consent* — nobody ships the *commercial intelligence* layer for agent checkouts. That's the gap Settle occupies. Every Settle artifact maps onto a named protocol counterpart — see `docs/protocol-map.md`.
+
+## Two surfaces, one negotiation
+
+- **`/` — merchant console**: live rescue feed with KPIs, policy overrides, fault injection, dual-ledger trace viewer.
+- **`/buyer` — buyer agent**: speak or type an intent (Web Speech API, typed fallback), watch your mandate get parsed into visible rules, follow the negotiation step by step, and get an itemized bill explaining *why every line is there* — which rule accepted the attachment, who funded the relief, what the merchant spent from its own margin.
 
 ## Architecture
 
@@ -56,17 +61,20 @@ Partial-rescue round: if full-gap relief is unprofitable, a half-gap offer lets 
 | Bounded | Mandate hard cap + declared flex rule + pre-declared attachment criteria; max-3 payment rails; hunt-time budget; finite campaign budgets; daily discount budget |
 | Gated | `buyer-gate.ts` & `merchant-gate.ts` pure functions; LLM never computes money |
 | Audit trail | Dual append-only hash chains + per-session ed25519-signed tips, verified live in the console |
+| Signed artifacts | Every counter-offer is an ed25519-signed `settle.counter_offer.v1` artifact bound to mandate id + cart hash; badges in both UIs |
+| Adversarial proof | Red-team corpus — prompt injection, cap inflation, unbounded stretch, extras smuggling, junk rails — runs the real gates: **0 violations** (`npm run redteam`); the LLM intent parser sits behind a schema-validation gate with deterministic fallback |
 | Failure handled gracefully ×4 | Offer expiry mid-round · all-rails declined · cart drift after consent · consent revoked — all E2E-proven in Chromium (`npm run e2e`) |
 
 ## Quickstart
 
 ```bash
 npm install
-npm run typecheck && npm test     # unit suite (parser gates, ledger concurrency, tamper detection)
+npm run typecheck && npm test     # unit suite (parser gates, ledger concurrency, tamper detection, red-team invariants)
 npm run demo                      # one rescue story from both audit ledgers
 npm run metrics                   # 120-shopper A/B report → docs/metrics-report.json
+npm run redteam                   # adversarial buyers attack the gates → docs/redteam-report.json
 npm run e2e                       # browser-proof all failure cases (needs npx playwright install chromium)
-npm run dev                       # console at http://localhost:8787
+npm run dev                       # merchant console at http://localhost:8787 · buyer agent at /buyer
 npm run rzp:integration           # real test-mode order proof (needs keys in .env)
 ```
 

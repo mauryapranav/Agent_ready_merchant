@@ -60,14 +60,20 @@
 
 **Verification:** 91/91 unit · typecheck clean · stale fail-screenshots purged from e2e-artifacts.
 
+**Phases 1–3 (same day):**
+- **Phase 1 — buyer dashboard `/buyer`:** Web Speech API intent input (typed fallback), mandate-readback chips with parser badge, step-by-step negotiation timeline, itemized **why-bill** (relief line shows who funded it + merchant's own cost), trust badges. New `/api/parse` endpoint. E2E scenario 06 added → **6/6**.
+- **Phase 2 — protocol alignment:** every released counter-offer is now an ed25519-signed `settle.counter_offer.v1` artifact (mandate id + cart hash bound, signer key id) — verifiable, badge in both UIs; `/acp/feed` machine-readable catalog; `docs/protocol-map.md` maps every artifact to its UAP/AP2/ACP counterpart (aligned-not-certified stance). +2 signing tests.
+- **Phase 3 — red-team harness:** `npm run redteam` runs prompt-injection / cap-inflation / unbounded-stretch / extras-smuggling / junk-rail attacks through the real gates; invariants (cap ceiling, allowed rails, extras scope) checked per session. Deterministic corpus: 6 hostile sessions + 1 injection blocked at parse → **0 violations** (`docs/redteam-report.json`). LLM arm generates extra hostile intents when a key is present. +2 tests.
+- **Final state: 95/95 unit · typecheck clean · 6/6 E2E · red-team 0 violations.**
+
 ---
 
 ## Status after today
 
-- **v2 hardening Phase 0 (correctness + honest AI) COMPLETE** — shared ledger, LLM parser gated+wired, receipts replayable, insights consent-scoped, dead code gone.
-- **Next phases:** buyer dashboard with voice input (`/buyer`), AP2-shaped mandate/counter-offer signing, LLM red-team harness, pitch refresh.
-- 91 unit tests · typecheck clean · 5/5 E2E · metrics reproducible (`npm run metrics`, seed 42).
+- **v2 COMPLETE: correctness + buyer dashboard + protocol alignment + red-team proof.**
+- 95 unit tests · typecheck clean · 6/6 E2E · red-team 0 violations · metrics reproducible (seed 42).
+- Remaining before Sept 5: record the 5-min pitch video per `docs/pitch-script.md` shot list; optional LLM-key demo of live parser + LLM red-team arm.
 
 ## Resume from (next session)
 
-Phase 1 — buyer dashboard at `/buyer`: Web Speech API intent input → parsed-intent chips → live negotiation timeline → itemized "why" settlement bill. Merchant console stays the single home of fault injection; `/buyer` mirrors outcomes via `/api/feed`.
+Recording day. Rehearse `docs/pitch-script.md` once end-to-end, then shoot the 8-shot list. If the LLM key is set, capture the `parsed-by llm(validated)` badge live; otherwise the deterministic badge story is equally honest.
