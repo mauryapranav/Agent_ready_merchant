@@ -12,10 +12,14 @@ export interface SessionRecord {
   finalTotalPaise: number | null;
   paidVia: string | null;
   reason: string | null;
+  intentText: string;
+  consentSharing: "none" | "anonymized_topk";
+  skus: Array<{ sku: string; qty: number }>;
   buyerEvents: unknown[];
   merchantEvents: unknown[];
   chainsVerified: boolean;
   tipSignatures: { buyer: { hash: string; signature: string } | null; merchant: { hash: string; signature: string } | null };
+  receipt: unknown;
 }
 
 const records: SessionRecord[] = [];
@@ -52,7 +56,6 @@ export function computeMetrics(): Metrics {
     fundedDiscountSessions: 0,
     lostRevenuePaise: 0,
   };
-  let oldest = true;
   for (const r of [...records].reverse()) {
     if (r.outcome === "DIRECT_PAID") m.directPaid += 1;
     else if (r.outcome === "PAID") {
@@ -64,9 +67,8 @@ export function computeMetrics(): Metrics {
       }
     } else if (r.outcome === "ABORTED") {
       m.aborted += 1;
-      if (oldest === false || true) m.lostRevenuePaise += r.cartTotalPaise;
+      m.lostRevenuePaise += r.cartTotalPaise;
     } else if (r.outcome === "PAUSED_FOR_HUMAN") m.paused += 1;
-    oldest = false;
   }
   return m;
 }

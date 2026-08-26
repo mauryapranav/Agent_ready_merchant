@@ -145,6 +145,8 @@ const server = createServer(async (req, res) => {
     const crossSellEvent = result.merchantLedger.all().find((e) => e.kind === "CROSS_SELL_ACCEPTED");
     const crossSoldSku = crossSellEvent ? ((crossSellEvent.event as { sku?: string }).sku ?? null) : null;
 
+    const receipt = await buildReceipt([...result.buyerLedger.all()], [...result.merchantLedger.all()]);
+
     saveRecord({
       sessionId,
       at: new Date().toISOString(),
@@ -159,13 +161,15 @@ const server = createServer(async (req, res) => {
       finalTotalPaise: result.finalTotalPaise,
       paidVia: result.paidVia,
       reason: result.reason,
+      intentText,
+      consentSharing: body.consentSharing ?? "anonymized_topk",
+      skus,
       buyerEvents: [...result.buyerLedger.all()],
       merchantEvents: [...result.merchantLedger.all()],
       chainsVerified: result.buyerLedger.verify() && result.merchantLedger.verify(),
       tipSignatures: result.tipSignatures,
+      receipt,
     });
-
-    const receipt = await buildReceipt([...result.buyerLedger.all()], [...result.merchantLedger.all()]);
 
     send(res, 200, {
       sessionId,
