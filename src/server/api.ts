@@ -22,6 +22,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
 const executor: PaymentExecutor = defaultExecutor();
 const campaignBudget: import("../types/catalog.js").FundedCampaign[] = structuredClone(OFFER_SURFACE.campaigns);
+const releaseLedger: import("../types/policy.js").ReleaseLedgerEntry[] = [];
 const signingKeys = generateSigningKeyPair();
 
 interface SessionRequestBody {
@@ -120,7 +121,6 @@ const server = createServer(async (req, res) => {
       new Date()
     );
 
-    const releaseLedger: import("../types/policy.js").ReleaseLedgerEntry[] = [];
     const result = await runSession({
       mandate,
       cart: { sessionId, items: skus, totalPaise, hash: body.forceDrift ? `drifted_${cartHashValue}` : cartHashValue },
