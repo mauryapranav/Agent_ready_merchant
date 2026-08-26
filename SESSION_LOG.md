@@ -42,28 +42,32 @@
 
 ---
 
+## 2026-08-26 — Session 3 (v2 hardening: correctness first)
+
+**Goal:** make the live server match what the tests already proved — and wire every advertised-but-dormant AI path before the pitch video.
+
+**What broke (the 2 AM class of bug):**
+- **Fresh release ledger per HTTP request** (`src/server/api.ts`): `runSession` got a brand-new `releaseLedger` array on every POST, so daily budget + cooldown guardrails only bound *within* one request. Tests proved the guarantee with a shared ledger; production silently didn't have it. A judge running two sessions could have watched the daily budget reset every time.
+  - *Fix:* module-level shared ledger + regression test (`tests/server.test.ts`) that spins the real HTTP server on an ephemeral port, runs two sequential sessions against a ₹200 budget cap, and asserts own-money spend across BOTH sessions stays ≤ cap. First session rescues; second must not.
+
+**Also fixed:**
+- Receipts now persisted into `SessionRecord` → clicking any old feed row replays its full receipt (previously only the just-run session had one)
+- Dead branch `if (oldest === false || true)` in `computeMetrics` removed
+- LLM intent parser finally wired into the live path — behind a validation gate: schema-checked, caps bounded (₹1–₹100k), unknown brands/categories/rails dropped, `requireSoftMatches` recomputed deterministically; ANY failure falls back to the regex parser and the trace banner shows which one ran (`parsed-by llm(validated)` / `deterministic`)
+- Insights tab no longer string-matches item labels ignoring consent — aggregates only `anonymized_topk` mandates via SKU→product lookup (fixes Jockey miss too)
+- Deleted dead code: orphaned `src/payments/simulate.ts`, unused `NegotiationMessage` union + `CONSENT_REVOKED` block reason, renamed lying helper `cartDrifted()` → `cartHashMatches()`
+- Doc drift sweep: pitch script was quoting stale metrics (52.5%/87.5%/₹34k) vs the actual report (50%/83.3%/95% @ ₹31,131/₹4,823); test counts de-hardcoded
+
+**Verification:** 91/91 unit · typecheck clean · stale fail-screenshots purged from e2e-artifacts.
+
+---
+
 ## Status after today
 
-- **Build phase: COMPLETE.** All track-bar items green (explainable / bounded / gated / audited / 4 failure cases E2E-proven).
-- 82 unit tests · typecheck clean · 5/5 E2E · metrics reproducible (`npm run metrics`, seed 42).
-- Part A (build + guided verification) fully done.
+- **v2 hardening Phase 0 (correctness + honest AI) COMPLETE** — shared ledger, LLM parser gated+wired, receipts replayable, insights consent-scoped, dead code gone.
+- **Next phases:** buyer dashboard with voice input (`/buyer`), AP2-shaped mandate/counter-offer signing, LLM red-team harness, pitch refresh.
+- 91 unit tests · typecheck clean · 5/5 E2E · metrics reproducible (`npm run metrics`, seed 42).
 
 ## Resume from (next session)
 
-**Part B — code-reading in execution order + written answers.** Coach mode: if an answer is wrong/vague, don't reveal the correct one — ask a follow-up pointing at the relevant file.
-
-**B1. Read in this exact order** (re-read the matching `docs/project-brief.md` section first, then the file):
-1. `src/negotiation/session.ts` — the conductor
-2. `src/core/buyer-gate.ts` + `src/core/merchant-gate.ts` — the two pure-function decision-makers
-3. `src/merchant/engine.ts` — discount offer assembly (over-budget carts)
-4. `src/merchant/crosssell.ts` — attachment suggestion assembly (within-cap carts)
-5. `src/audit/ledger.ts` + `src/audit/signing.ts` — hash chains + ed25519 tips
-
-**B2. The five questions — answer in writing FIRST (2–3 plain sentences each), then compare against `ARCHITECTURE.md`:**
-1. Why is order *creation* real (actual Razorpay) but payment *capture* simulated? The actual technical reason, not "it's a limitation".
-2. What was the campaign-budget bug, and why did it make the old conversion numbers misleading?
-3. What does signing the ledger with ed25519 add that the hash chain alone didn't?
-4. Could a buyer's agent lie about how much money it's short by, to get a bigger discount? Why or why not?
-5. Why does the LLM only ever write explanations and never decide whether to approve money — what would break if it could?
-
-Checkboxes: [ ] wrote all 5 answers first [ ] compared against ARCHITECTURE.md [ ] can say all 5 out loud, unprompted, correctly.
+Phase 1 — buyer dashboard at `/buyer`: Web Speech API intent input → parsed-intent chips → live negotiation timeline → itemized "why" settlement bill. Merchant console stays the single home of fault injection; `/buyer` mirrors outcomes via `/api/feed`.

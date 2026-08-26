@@ -58,7 +58,7 @@ Degradation is honest too: with external funding switched off, Settle still clos
 ## Run it
 
 ```bash
-npm install && npm test          # 72 unit tests
+npm install && npm test          # unit tests
 npm run e2e                      # browser-proof failure cases
 npm run demo                     # one rescue story from audit ledgers
 npm run metrics                  # regenerate all numbers deterministically

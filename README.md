@@ -62,7 +62,7 @@ Partial-rescue round: if full-gap relief is unprofitable, a half-gap offer lets 
 
 ```bash
 npm install
-npm run typecheck && npm test     # 82 unit tests
+npm run typecheck && npm test     # unit suite (parser gates, ledger concurrency, tamper detection)
 npm run demo                      # one rescue story from both audit ledgers
 npm run metrics                   # 120-shopper A/B report → docs/metrics-report.json
 npm run e2e                       # browser-proof all failure cases (needs npx playwright install chromium)

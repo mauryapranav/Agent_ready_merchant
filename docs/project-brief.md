@@ -3,7 +3,7 @@
 > Purpose of this document: give any reviewer (human or LLM) a complete, self-contained understanding of what Settle is, why every piece exists, how it works internally, what has been proven, and what has not. Written to support professional-grade evaluation after the post-review upgrade pass (real Razorpay contact, honest metrics, cross-sell growth loop, ledger signing, idempotent capture).
 >
 > Repo root assumed: `D:\programming\RAZORPAY_PROJECT`
-> Verification status at time of writing: `tsc --noEmit` clean · **72/72 unit tests** · **5/5 browser E2E scenarios** · deterministic metrics report regenerated (`docs/metrics-report.json`, seed 42).
+> Verification status at time of writing: `tsc --noEmit` clean · **unit suite green (see `npm test`)** · **5/5 browser E2E scenarios** · deterministic metrics report regenerated (`docs/metrics-report.json`, seed 42).
 
 ---
 

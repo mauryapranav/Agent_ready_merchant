@@ -13,13 +13,13 @@
 4. Check both fail-rail boxes → every rail declines → bounded retries → clean ABORTED.
 
 ## 2:20–3:00 · Why merchants trust it
-"The waterfall tries brand-funded campaigns, then bank-funded rail offers, then margin-neutral swaps — direct price cuts are last. Even those pass a floor margin, daily budget and cooldown gate first. And the settlement path is 100% deterministic by design: LLMs parse intent and narrate — they never authorize spend. Blanket discounting burns ₹34k of margin per 120 buyers; Settle spends ₹4k."
+"The waterfall tries brand-funded campaigns, then bank-funded rail offers, then margin-neutral swaps — direct price cuts are last. Even those pass a floor margin, daily budget and cooldown gate first. And the settlement path is 100% deterministic by design: LLMs parse intent and narrate — they never authorize spend; the LLM's parse itself is validated against a schema before it can touch a mandate, with a deterministic fallback. Blanket discounting burns ₹31k of merchant money per 120 buyers; Settle spends under ₹5k."
 
 ## 3:00–3:40 · Numbers (honest ones)
-Show docs/metrics-report.json primary table (floor 20%): no-rescue 52.5% / flat-10% 87.5% @ ₹34k own-cost / Settle ~100% @ ₹4k own-cost. "Conversion stays high because relief is mostly externally funded — and when we switch external funding off, Settle still closes 77–82% at ₹5k total spend versus blanket's 87.5% at ₹34k. Seven-times cheaper discounting."
+Show docs/metrics-report.json primary table (floor 20%): no-rescue 50% / flat-10% 83.3% @ ₹31,131 own-cost / Settle 95% @ ₹4,823 own-cost (+₹918 upsell). "Conversion stays high because relief is mostly externally funded — and when we switch external funding off, Settle still closes 68.3% at the hard budget cap versus blanket's 83.3% at ₹31k. Six-and-a-half-times cheaper discounting, with degradation that is graceful, not catastrophic."
 
 ## 3:40–4:20 · Trust architecture
-"LLMs propose; deterministic gates dispose. Money math is integer paise in pure functions. Every decision lands in two hash-chained ledgers — tamper any entry and verification breaks loudly. Buyer affinity data is DPDP-consented; revoking mid-session degrades to neutral ranking, proven in E2E."
+"LLMs propose; deterministic gates dispose. Money math is integer paise in pure functions. Every decision lands in two hash-chained ledgers — tamper any entry and verification breaks loudly. Buyer affinity data is DPDP-consented at the mandate level; non-consented sessions never enter merchant insights, proven in E2E."
 
 ## 4:20–5:00 · Close
 "This maps one-to-one onto where UAP is heading: agent identity, spend limits, tamper-evident logs. Accepted settlements already create real Razorpay test-mode orders — the order IDs sit in those ledgers. Settle is the commercial layer merchants will want on top of that protocol stack. Every failure case you just saw was handled on camera."
