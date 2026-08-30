@@ -9,6 +9,14 @@
     --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
     --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
     --line:#E7E5E4;
+    --input-bg:#FFFFFF;
+    --ghost-bg:#FFFFFF;
+  }
+  [data-theme="dark"]{
+    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --muted:#A8A29E;
+    --line:#44403C;
+    --input-bg:#1C1917;
+    --ghost-bg:#1C1917;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -22,14 +30,15 @@
   main{max-width:860px;margin:0 auto;padding:26px 20px 60px}
   h1{font-size:19px;margin:0 0 4px}
   .page-sub{color:var(--muted);margin-bottom:20px;font-size:13px}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:18px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
   .panel h2{margin:0 0 4px;font-size:14px}
   .panel .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
-  textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;resize:vertical}
+  textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--input-bg);color:var(--ink);resize:vertical}
   .intent-row{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
   button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px}
   button:disabled{opacity:.5;cursor:not-allowed}
-  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button.ghost{background:var(--ghost-bg);color:var(--ink);border:1px solid var(--line)}
+  button.ghost:hover:not(:disabled){background:var(--line)}
   #mic-btn.listening{background:var(--bad)}
   .hint{color:var(--muted);font-size:11.5px;margin-top:8px}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -40,11 +49,19 @@
   .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
   .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
   .chip.plain{background:#F5F5F4;color:var(--ink)}
+  [data-theme="dark"] .chip.ok{background:#064E3B;color:#6EE7B7} [data-theme="dark"] .chip.ok i{background:#6EE7B7}
+  [data-theme="dark"] .chip.bad{background:#7F1D1D;color:#FCA5A5} [data-theme="dark"] .chip.bad i{background:#FCA5A5}
+  [data-theme="dark"] .chip.warn{background:#78350F;color:#FDE047} [data-theme="dark"] .chip.warn i{background:#FDE047}
+  [data-theme="dark"] .chip.info{background:#1E3A5F;color:#93C5FD} [data-theme="dark"] .chip.info i{background:#93C5FD}
+  [data-theme="dark"] .chip.plain{background:#2A2725;color:var(--ink)}
   .skus label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
   .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
   .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
   .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
   .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
+  [data-theme="dark"] .banner.ok{background:#064E3B;color:#6EE7B7}
+  [data-theme="dark"] .banner.bad{background:#7F1D1D;color:#FCA5A5}
+  [data-theme="dark"] .banner.warn{background:#78350F;color:#FDE047}
   ol.timeline{list-style:none;margin:0;padding:0}
   ol.timeline li{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);align-items:baseline}
   ol.timeline li:last-child{border-bottom:0}
@@ -61,14 +78,22 @@
   .verify-badge{font-size:12px;font-weight:600}
   .verify-badge.ok{color:var(--ok)} .verify-badge.bad{color:var(--bad)}
   .receipt{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
-  .receipt p{margin:6px 0 0;font-size:13px;color:#44403C}
+  .receipt p{margin:6px 0 0;font-size:13px;color:var(--muted)}
   .hidden{display:none}
+  
+  /* Auto-selected indicator */
+  .sku-auto{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:600;background:var(--accent);color:#fff}
+  [data-theme="dark"] .sku-auto{background:var(--accent);color:#fff}
 </style>
 </head>
 <body>
 <header>
   <div class="brand">Set<span>t</span>le · buyer agent</div>
-  <div class="side">You are shopping through your AI agent. <a href="/">Open merchant console →</a></div>
+  <div class="side" style="display:flex;align-items:center;gap:12px">
+    <span>You are shopping through your AI agent.</span>
+    <a href="/">Open merchant console →</a>
+    <button id="theme-toggle" class="ghost" style="padding:6px 10px;font-size:12px" data-testid="theme-toggle">Dark</button>
+  </div>
 </header>
 <main>
   <h1>Shop by voice, watch the negotiation</h1>
@@ -114,10 +139,16 @@
 
 <script type="module">
 const $ = (s) => document.querySelector(s);
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&", "<":"<", ">":">", '"':""", "'":"'" }[c]));
 const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {maximumFractionDigits: 0});
 let catalog = [];
 let lastRun = null;
+
+async function getCsrfToken() {
+  const res = await fetch("/api/csrf-token");
+  const data = await res.json();
+  return data.csrfToken;
+}
 
 async function loadCatalog() {
   const res = await fetch("/api/catalog");
@@ -130,8 +161,45 @@ async function loadCatalog() {
     l.innerHTML = `<input type="checkbox" name="sku" value="${p.sku}"> ${esc(p.title)} <span class="mono muted">${paise(p.pricePaise)}</span>`;
     list.appendChild(l);
   }
-  const nike = list.querySelector('input[value="nike-peg-41"]');
-  if (nike) nike.checked = true;
+}
+
+function autoSelectShoe(parsed) {
+  const list = $("#sku-list");
+  const inputs = list.querySelectorAll('input[name="sku"]');
+  inputs.forEach(i => { i.checked = false; i.parentElement.querySelector('.sku-auto')?.remove(); });
+  
+  const cap = parsed.capPaise;
+  const preferredCategory = parsed.softCriteria?.find(c => c.kind === "category")?.value;
+  const preferredBrand = parsed.softCriteria?.find(c => c.kind === "brand")?.value;
+  
+  let bestMatch = null;
+  let bestScore = -1;
+  
+  for (const p of catalog) {
+    if (p.category !== "shoes") continue;
+    if (p.pricePaise > cap) continue;
+    
+    let score = 0;
+    if (preferredBrand && p.brand.toLowerCase() === preferredBrand.toLowerCase()) score += 100;
+    if (preferredCategory && p.category === preferredCategory) score += 50;
+    score += (cap - p.pricePaise); // prefer cheaper within budget
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = p;
+    }
+  }
+  
+  if (bestMatch) {
+    const input = list.querySelector(`input[value="${bestMatch.sku}"]`);
+    if (input) {
+      input.checked = true;
+      const autoBadge = document.createElement("span");
+      autoBadge.className = "sku-auto";
+      autoBadge.textContent = "Auto-selected";
+      input.parentElement.appendChild(autoBadge);
+    }
+  }
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -166,9 +234,10 @@ $("#parse-btn").addEventListener("click", async () => {
   const btn = $("#parse-btn");
   btn.disabled = true;
   try {
+    const csrfToken = await getCsrfToken();
     const res = await fetch("/api/parse", {
       method: "POST", headers: {"content-type":"application/json"},
-      body: JSON.stringify({ intentText: $("#buyer-intent").value }),
+      body: JSON.stringify({ intentText: $("#buyer-intent").value, csrfToken }),
     });
     const data = await res.json();
     const wrap = $("#intent-chips");
@@ -185,6 +254,7 @@ $("#parse-btn").addEventListener("click", async () => {
     wrap.innerHTML =
       bits.map(b => `<span class="chip plain">${b}</span>`).join("") +
       `<span class="chip info"><i></i>read by ${data.parsedBy === "llm" ? "LLM · validated" : "deterministic parser"}</span>`;
+    autoSelectShoe(data);
   } finally {
     btn.disabled = false;
   }
@@ -195,9 +265,10 @@ $("#run-btn").addEventListener("click", async () => {
   btn.disabled = true;
   const skus = [...document.querySelectorAll('#sku-list input[name="sku"]:checked')].map(i => ({ sku: i.value, qty: 1 }));
   try {
+    const csrfToken = await getCsrfToken();
     const res = await fetch("/api/session", {
       method: "POST", headers: {"content-type":"application/json"},
-      body: JSON.stringify({ intentText: $("#buyer-intent").value, skus }),
+      body: JSON.stringify({ intentText: $("#buyer-intent").value, skus, csrfToken }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -319,6 +390,35 @@ function renderResult(request, data) {
 }
 
 loadCatalog();
+
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = saved ? saved === "dark" : prefersDark;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  $("#theme-toggle").textContent = dark ? "Light" : "Dark";
+}
+$("#theme-toggle").addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  localStorage.setItem("theme", dark ? "light" : "dark");
+  $("#theme-toggle").textContent = dark ? "Dark" : "Light";
+});
+
+function initJudgeMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("judge") === "1") {
+    document.body.classList.add("judge-mode");
+    setTimeout(() => {
+      $("#buyer-intent").value = "Get me running shoes under ₹5000. Extras only from Jockey.";
+      $("#parse-btn").click();
+      setTimeout(() => $("#run-btn").click(), 800);
+    }, 300);
+  }
+}
+
+initTheme();
+initJudgeMode();
 </script>
 </body>
 </html>

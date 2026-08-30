@@ -96,13 +96,14 @@ test("catalog is internally consistent (cost < price)", () => {
 });
 
 test("campaign budget is finite: exhausts across sessions and falls through", () => {
-  const campaigns = [
-    { campaignId: "c1", label: "tiny", flatOffPaise: rupees(300), minCartPaise: rupees(3000), fundedBy: "brand" as const, remainingBudgetPaise: rupees(300), validTo: "2027-01-01T00:00:00Z" },
+  let campaigns: import("../src/types/catalog.js").FundedCampaign[] = [
+    { campaignId: "c1", label: "tiny", flatOffPaise: rupees(300), minCartPaise: rupees(3000), fundedBy: "brand", remainingBudgetPaise: rupees(300), validTo: "2027-01-01T00:00:00Z" },
   ];
   const c = cart([{ sku: "nike-peg-41", qty: 1 }]);
   const first = buildCounterOffer({ ...base, cart: c, requiredDiscountPaise: rupees(280), campaigns });
   assert.ok(first.offer);
   assert.equal(first.offer.mechanism.step, "funded_campaign");
+  campaigns = first.updatedCampaigns ?? campaigns;
   const second = buildCounterOffer({ ...base, cart: c, requiredDiscountPaise: rupees(280), campaigns });
   assert.ok(second.offer);
   assert.equal(second.offer.mechanism.step, "bundle_swap");

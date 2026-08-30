@@ -25,7 +25,8 @@ const fakeClient = (fail: boolean): RazorpayClient & { calls: number } => {
 
 test("razorpay executor creates one order per receipt and reuses it across rails", async () => {
   const client = fakeClient(false);
-  const exec = new RazorpayExecutor(client);
+  const creds = { keyId: "test_key", keySecret: "test_secret" };
+  const exec = new RazorpayExecutor(client, creds);
   const opts = { failRails: ["upi" as const] };
   const first = await exec.charge({ rail: "upi", amountPaise: 388000, idempotencyKey: "k1", receiptId: "s_1" }, opts);
   assert.equal(first.ok, false);
@@ -38,7 +39,8 @@ test("razorpay executor creates one order per receipt and reuses it across rails
 });
 
 test("order-creation failure surfaces as RAZORPAY_ORDER_FAILED without crashing", async () => {
-  const exec = new RazorpayExecutor(fakeClient(true));
+  const creds = { keyId: "test_key", keySecret: "test_secret" };
+  const exec = new RazorpayExecutor(fakeClient(true), creds);
   const r = await exec.charge({ rail: "upi", amountPaise: 100, idempotencyKey: "k", receiptId: "s_x" }, {});
   assert.equal(r.ok, false);
   assert.equal(r.errorCode, "RAZORPAY_ORDER_FAILED");

@@ -11,14 +11,21 @@
     "e2e": "node tests/e2e/console.e2e.mjs",
     "metrics": "tsx src/metrics/run-report.ts",
     "redteam": "tsx src/metrics/redteam.ts",
-    "rzp:integration": "tsx scripts/rzp-integration.ts"
+    "rzp:integration": "tsx scripts/rzp-integration.ts",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seed.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "dependencies": {
+    "pg": "^8.11.5",
+    "jose": "^5.2.3"
+  },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "@types/pg": "^8.11.2",
     "playwright": "^1.62.1",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2"

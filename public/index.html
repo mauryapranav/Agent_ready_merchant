@@ -9,29 +9,40 @@
     --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
     --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
     --line:#E7E5E4;
+    --card-hover:#F5F5F4;
+    --input-bg:#FFFFFF;
+  }
+  [data-theme="dark"]{
+    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --muted:#A8A29E;
+    --line:#44403C;
+    --card-hover:#2A2725;
+    --input-bg:#1C1917;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;}
+    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;
+    transition:background .2s,color .2s;}
   .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
   .layout{display:flex;min-height:100vh}
   nav{width:200px;background:var(--card);border-right:1px solid var(--line);padding:20px 12px;flex-shrink:0}
   .brand{font-weight:700;font-size:16px;margin-bottom:4px}
   .brand span{color:var(--accent)}
   .brand-sub{color:var(--muted);font-size:11px;margin-bottom:24px}
-  nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;margin-bottom:2px}
-  nav a.active{background:#F0FDFA;color:var(--accent);font-weight:600}
+  nav a{display:block;padding:8px 10px;border-radius:8px;color:var(--ink);text-decoration:none;margin-bottom:2px;transition:background .15s}
+  nav a:hover{background:var(--card-hover)}
+  nav a.active{background:var(--accent);color:#fff;font-weight:600}
   main{flex:1;padding:28px 32px;max-width:1200px}
   h1{font-size:20px;margin:0 0 4px}
   .page-sub{color:var(--muted);margin-bottom:22px}
   .cards{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:170px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:170px;transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
   .card .kpi{font-size:20px;font-weight:700}
   .card .lbl{color:var(--muted);font-size:12px;margin-top:2px}
-  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden}
-  th{position:sticky;top:0;background:#F5F5F4;text-align:left;font-size:12px;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th{position:sticky;top:0;background:var(--card-hover);text-align:left;font-size:12px;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
   td{padding:10px 12px;border-bottom:1px solid var(--line)}
-  tr.rowbtn:hover td{background:#F5F5F4;cursor:pointer}
+  tr.rowbtn:hover td{background:var(--card-hover);cursor:pointer}
   td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
   .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
   .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
@@ -39,20 +50,30 @@
   .chip.bad{background:#FEF2F2;color:var(--bad)} .chip.bad i{background:var(--bad)}
   .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
   .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:20px}
+  [data-theme="dark"] .chip.ok{background:#064E3B;color:#6EE7B7} [data-theme="dark"] .chip.ok i{background:#6EE7B7}
+  [data-theme="dark"] .chip.bad{background:#7F1D1D;color:#FCA5A5} [data-theme="dark"] .chip.bad i{background:#FCA5A5}
+  [data-theme="dark"] .chip.warn{background:#78350F;color:#FDE047} [data-theme="dark"] .chip.warn i{background:#FDE047}
+  [data-theme="dark"] .chip.info{background:#1E3A5F;color:#93C5FD} [data-theme="dark"] .chip.info i{background:#93C5FD}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:20px}
   label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
-  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
-  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--input-bg);color:var(--ink);transition:border .15s}
+  input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--accent)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
+  button:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
   button:disabled{opacity:.5;cursor:not-allowed}
-  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  button.ghost:hover:not(:disabled){background:var(--card-hover)}
   .grid2{display:grid;grid-template-columns:1fr 320px;gap:20px}
   .skus label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink);font-size:13px;text-transform:none}
   .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
   .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
   .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
   .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
+  [data-theme="dark"] .banner.ok{background:#064E3B;color:#6EE7B7}
+  [data-theme="dark"] .banner.bad{background:#7F1D1D;color:#FCA5A5}
+  [data-theme="dark"] .banner.warn{background:#78350F;color:#FDE047}
   .trace{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-  .tcol{background:#FAFAF9;border:1px solid var(--line);border-radius:8px;padding:14px}
+  .tcol{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
   .tcol h3{margin:0 0 10px;font-size:13px}
   .tev{display:flex;gap:10px;margin-bottom:8px;align-items:baseline}
   .tev i{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
@@ -63,18 +84,52 @@
   .hidden{display:none}
   .muted{color:var(--muted)}
   .insight-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+  
+  /* Trail/timeline styles */
+  .trail{display:flex;flex-direction:column;gap:0}
+  .trail-item{display:flex;gap:12px;padding:10px 0;position:relative}
+  .trail-item:not(:last-child)::before{content:"";position:absolute;left:3px;top:24px;bottom:0;width:2px;background:var(--line)}
+  .trail-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:2px;background:var(--line);border:2px solid var(--card);z-index:1}
+  .trail-dot.buyer{background:#0F766E}
+  .trail-dot.merchant{background:#1D4ED8}
+  .trail-dot.ok{background:#15803D}
+  .trail-dot.bad{background:#B91C1C}
+  .trail-dot.warn{background:#B45309}
+  .trail-content{flex:1;min-width:0}
+  .trail-label{font-weight:600;font-size:12px;color:var(--ink)}
+  .trail-detail{font-size:11px;color:var(--muted);margin-top:2px;word-break:break-all}
+  .trail-time{font-size:10px;color:var(--muted);white-space:nowrap;margin-left:8px}
+  
+  /* Chart canvas */
+  .chart-wrap{height:200px;position:relative;margin:16px 0}
+  .chart-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+  .legend-color{width:10px;height:10px;border-radius:2px}
+  
+  /* Auto-sim output */
+  .sim-line{padding:8px 10px;margin:4px 0;border-radius:6px;font-family:monospace;font-size:12px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:8px}
+  .sim-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .sim-dot.ok{background:var(--ok)}
+  .sim-dot.bad{background:var(--bad)}
+  .sim-dot.running{background:var(--accent);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
 <div class="layout">
-  <nav>
+<nav>
     <div class="brand">Set<span>t</span>le</div>
     <div class="brand-sub">Agentic checkout rescue</div>
     <a href="#" data-tab="feed" class="active">Live feed</a>
-    <a href="#" data-tab="run">Run session</a>
-    <a href="#" data-tab="policy">Policy &amp; waterfall</a>
-    <a href="#" data-tab="insights">Insights</a>
-    <a href="/buyer" style="margin-top:18px;color:var(--accent);font-weight:600">Buyer view ↗</a>
+    <a href="#" data-tab="run" class="">Run session</a>
+    <a href="#" data-tab="policy" class="">Policy & waterfall</a>
+    <a href="#" data-tab="insights" class="">Insights</a>
+    <a href="#" data-tab="analytics" class="">Analytics</a>
+    <a href="/buyer" style="margin-top:18px;color:var(--accent);font-weight:600">Buyer view →</a>
+    <div style="margin-top:18px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:8px">
+      <span class="muted" style="font-size:11px">Theme</span>
+      <button id="theme-toggle" class="ghost" style="padding:6px 10px;font-size:12px" data-testid="theme-toggle">Dark</button>
+    </div>
   </nav>
   <main>
     <section id="tab-feed">
@@ -129,9 +184,10 @@
         </div>
         <div style="margin-top:18px">
           <button id="run-btn" data-testid="run-btn">Run session</button>
+          <button id="auto-sim-btn" class="ghost" style="margin-left:10px" data-testid="auto-sim-btn">Auto-simulate all failures</button>
         </div>
+        <div id="auto-sim-output" class="hidden" style="margin-top:12px;max-height:400px;overflow:auto"></div>
         <div id="result-banner" class="banner" data-testid="result-banner"></div>
-        <div id="trace-wrap"></div>
       </div>
     </section>
 
@@ -146,21 +202,34 @@
       <div class="page-sub">Brand affinity aggregated only from rescued sessions whose mandate declared anonymized top-K sharing. Sessions without consent never enter this view.</div>
       <div class="panel" id="insights-view"></div>
     </section>
+
+    <section id="tab-analytics" class="hidden">
+      <h1>Analytics</h1>
+      <div class="page-sub">Merchant-side error analysis and success funnel from all simulated sessions.</div>
+      <div class="panel" id="analytics-view"></div>
+    </section>
   </main>
 </div>
 <script type="module">
 const $ = (s) => document.querySelector(s);
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&", "<":"<", ">":">", """:""", "'":"'" }[c]));
 const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {minimumFractionDigits: 0});
 let catalog = [];
+
+async function getCsrfToken() {
+  const res = await fetch("/api/csrf-token");
+  const data = await res.json();
+  return data.csrfToken;
+}
 
 document.querySelectorAll("nav a[data-tab]").forEach(a => a.addEventListener("click", (e) => {
   e.preventDefault();
   document.querySelectorAll("nav a").forEach(x => x.classList.remove("active"));
   a.classList.add("active");
-  ["feed","run","policy","insights"].forEach(t => $("#tab-" + t).classList.toggle("hidden", t !== a.dataset.tab));
+  ["feed","run","policy","insights","analytics"].forEach(t => $("#tab-" + t).classList.toggle("hidden", t !== a.dataset.tab));
   if (a.dataset.tab === "policy") renderPolicy();
   if (a.dataset.tab === "insights") renderInsights();
+  if (a.dataset.tab === "analytics") renderAnalytics();
 }));
 
 async function loadCatalog() {
@@ -174,8 +243,6 @@ async function loadCatalog() {
     l.innerHTML = `<input type="checkbox" name="sku" value="${p.sku}"> ${p.title} <span class="mono muted">${paise(p.pricePaise)}</span>`;
     list.appendChild(l);
   }
-  const nike = list.querySelector('input[value="nike-peg-41"]');
-  if (nike) nike.checked = true;
 }
 
 function chipFor(outcome) {
@@ -217,23 +284,66 @@ function evLine(ev) {
 }
 
 function showTrace(r) {
-  document.querySelector('nav a[data-tab="run"]').click();
-  const banner = $("#result-banner");
-  banner.className = "banner " + (["PAID","DIRECT_PAID"].includes(r.outcome) ? "ok" : r.outcome === "ABORTED" ? "bad" : "warn");
-  const rzp = r.razorpayOrderId ? " · RZP " + r.razorpayOrderId.slice(0, 14) : "";
-  const parser = r.parsedBy ? " · parsed-by " + (r.parsedBy === "llm" ? "llm(validated)" : "deterministic") : "";
-  banner.textContent = `${r.sessionId} → ${r.outcome}${r.paidVia ? " via " + r.paidVia.toUpperCase() : ""}${rzp}${r.reason ? " (" + r.reason + ")" : ""}${parser}`;
-  const sigBadge = (s) => s ? ' <span class="verify-badge ok">ed25519 signed</span>' : "";
-  const offerSigBadge = (r) => (r.merchantEvents ?? []).some(e => e.event && e.event.signedOffer) ? ' <span class="verify-badge ok">counter-offer ed25519-signed</span>' : "";
-  $("#trace-wrap").innerHTML = `
-    <div class="trace" data-testid="trace">
-      <div class="tcol"><h3>Buyer ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.buyer)}</h3>
-        ${r.buyerEvents.map(evLine).join("")}</div>
-      <div class="tcol"><h3>Merchant ledger <span class="verify-badge ${r.chainsVerified ? "ok" : "bad"}">${r.chainsVerified ? "chain verified" : "TAMPERED"}</span>${sigBadge(r.tipSignatures?.merchant)}${offerSigBadge(r)}</h3>
-        ${r.merchantEvents.map(evLine).join("")}</div>
-    </div>` +
-    (r.receipt ? `<div class="panel" style="margin-top:16px" data-testid="receipt"><h3 style="margin:0 0 8px;font-size:13px">Session receipt <span class="chip info"><i></i>AI-generated · post-hoc · outside audit chain</span></h3><p style="margin:0">${esc(r.receipt.text)}</p></div>` : "");
-  window.scrollTo({top: 0, behavior: "smooth"});
+  const existing = document.querySelector(".trail-panel");
+  if (existing) existing.remove();
+
+  const row = document.querySelector(`tr[data-session="${r.sessionId}"]`);
+  if (!row) return;
+
+  const panel = document.createElement("tr");
+  panel.className = "trail-panel";
+  panel.innerHTML = `<td colspan="6" style="padding:0;background:var(--bg);border-top:1px solid var(--line)"></td>`;
+  const container = panel.querySelector("td");
+
+  const allEvents = [...(r.buyerEvents || []).map(e => ({...e, side:"buyer"})), ...(r.merchantEvents || []).map(e => ({...e, side:"merchant"}))]
+    .sort((a,b) => new Date(a.time || 0) - new Date(b.time || 0));
+
+  const trailHtml = allEvents.map((ev, idx) => {
+    let cls = ev.side;
+    if (ev.kind === "SETTLEMENT_RESULT" && ev.event?.outcome === "PAID") cls = "ok";
+    if (ev.kind === "SETTLEMENT_RESULT" && ev.event?.outcome === "ABORTED") cls = "bad";
+    if (ev.kind === "PAUSED_FOR_HUMAN") cls = "warn";
+    const time = ev.time ? new Date(ev.time).toLocaleTimeString() : "";
+    let detail = "";
+    try { detail = JSON.stringify(ev.event).slice(0,200); } catch {}
+    return `
+      <div class="trail-item">
+        <div class="trail-dot ${cls}"></div>
+        <div class="trail-content">
+          <div class="trail-label">${esc(ev.kind)}</div>
+          <div class="trail-detail">${esc(detail)}</div>
+        </div>
+        <div class="trail-time">${time}</div>
+      </div>`;
+  }).join("");
+
+  const sigBadges = [];
+  if (r.tipSignatures?.buyer) sigBadges.push('Buyer ledger: ed25519 signed');
+  if (r.tipSignatures?.merchant) sigBadges.push('Merchant ledger: ed25519 signed');
+  if ((r.merchantEvents || []).some(e => e.event && e.event.signedOffer)) sigBadges.push('Counter-offer: ed25519 signed');
+
+  container.innerHTML = `
+    <div style="padding:16px 20px;background:var(--card);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div>
+        <span class="mono">${esc(r.sessionId)}</span>
+        <span class="chip ${["PAID","DIRECT_PAID"].includes(r.outcome)?"ok":r.outcome==="ABORTED"?"bad":"warn"}"><i></i>${r.outcome}</span>
+        ${r.paidVia ? `<span class="chip info"><i></i>${r.paidVia.toUpperCase()}</span>` : ""}
+        ${r.razorpayOrderId ? `<span class="chip info"><i></i>RZP ${r.razorpayOrderId.slice(0,14)}</span>` : ""}
+        ${r.parsedBy ? `<span class="chip info"><i></i>parsed-by ${r.parsedBy === "llm" ? "LLM (validated)" : "deterministic"}</span>` : ""}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)">
+        ${sigBadges.map(s => `<span>● ${s}</span>`).join("")}
+        <span>● Chain ${r.chainsVerified ? "verified" : "TAMPERED"}</span>
+      </div>
+    </div>
+    <div class="trail" style="padding:16px 20px;max-height:400px;overflow:auto">
+      ${trailHtml}
+    </div>
+    ${r.receipt ? `<div style="padding:16px 20px;border-top:1px solid var(--line);background:var(--card)"><strong>Session receipt</strong> <span class="chip info"><i></i>post-hoc · outside audit chain</span><p style="margin:8px 0 0;color:var(--muted)">${esc(r.receipt.text)}</p></div>` : ""}
+  `;
+
+  row.after(panel);
+  row.scrollIntoView({behavior:"smooth", block:"center"});
 }
 
 $("#run-btn").addEventListener("click", async () => {
@@ -241,6 +351,7 @@ $("#run-btn").addEventListener("click", async () => {
   btn.disabled = true;
   const skus = [...document.querySelectorAll('input[name="sku"]:checked')].map(i => ({ sku: i.value, qty: 1 }));
   const failRails = [...document.querySelectorAll('input[data-testid="fail-rail"]:checked')].map(i => i.value);
+  const csrfToken = await getCsrfToken();
   const body = {
     intentText: $("#intent-input").value,
     skus,
@@ -252,6 +363,7 @@ $("#run-btn").addEventListener("click", async () => {
     consentSharing: $("#sharing").value,
     offerTtlMs: $("#fi-expire").checked ? 0 : undefined,
     forceDrift: $("#fi-drift").checked,
+    csrfToken,
   };
   const res = await fetch("/api/session", { method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify(body) });
   const data = await res.json();
@@ -260,12 +372,11 @@ $("#run-btn").addEventListener("click", async () => {
     const b = $("#result-banner"); b.className = "banner bad"; b.textContent = data.error ?? "Session failed";
     return;
   }
-  showTrace({
-    sessionId: data.sessionId, outcome: data.outcome, paidVia: data.paidVia, reason: data.reason,
-    parsedBy: data.parsedBy,
-    chainsVerified: data.verified, buyerEvents: data.buyerEvents, merchantEvents: data.merchantEvents,
-    tipSignatures: data.tipSignatures, razorpayOrderId: data.razorpayOrderId, receipt: data.receipt,
-  });
+  const banner = $("#result-banner");
+  banner.className = "banner " + (["PAID","DIRECT_PAID"].includes(data.outcome) ? "ok" : data.outcome === "ABORTED" ? "bad" : "warn");
+  const rzp = data.razorpayOrderId ? " · RZP " + data.razorpayOrderId.slice(0, 14) : "";
+  const parser = data.parsedBy ? " · parsed-by " + (data.parsedBy === "llm" ? "llm(validated)" : "deterministic") : "";
+  banner.textContent = `${data.sessionId} → ${data.outcome}${data.paidVia ? " via " + data.paidVia.toUpperCase() : ""}${rzp}${data.reason ? " (" + data.reason + ")" : ""}${parser}`;
   refreshFeed();
 });
 
@@ -302,6 +413,229 @@ async function renderInsights() {
   $("#insights-view").innerHTML = (rows || '<span class="muted">No consented rescued sessions yet. Run some sessions with affinity sharing on.</span>') + scope;
 }
 
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const dark = saved ? saved === "dark" : prefersDark;
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+  $("#theme-toggle").textContent = dark ? "Light" : "Dark";
+}
+$("#theme-toggle").addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+  localStorage.setItem("theme", dark ? "light" : "dark");
+  $("#theme-toggle").textContent = dark ? "Dark" : "Light";
+});
+
+async function renderAnalytics() {
+  const res = await fetch("/api/feed");
+  const { records, metrics } = await res.json();
+
+  const total = records.length;
+  const paid = records.filter(r => ["PAID","DIRECT_PAID"].includes(r.outcome)).length;
+  const aborted = records.filter(r => r.outcome === "ABORTED").length;
+  const paused = records.filter(r => r.outcome === "PAUSED_FOR_HUMAN").length;
+
+  const errorCounts = {};
+  const dailyStats = {};
+  for (const r of records) {
+    if (r.outcome === "ABORTED") {
+      const reason = r.reason || "UNKNOWN";
+      errorCounts[reason] = (errorCounts[reason] || 0) + 1;
+    }
+    const day = r.sessionId.split("_")[1]?.slice(0,6) || "unknown";
+    if (!dailyStats[day]) dailyStats[day] = {total:0, paid:0, aborted:0};
+    dailyStats[day].total++;
+    if (["PAID","DIRECT_PAID"].includes(r.outcome)) dailyStats[day].paid++;
+    if (r.outcome === "ABORTED") dailyStats[day].aborted++;
+  }
+  const errorRows = Object.entries(errorCounts).sort((a,b) => b[1]-a[1]).map(([k,v]) =>
+    `<div class="insight-row"><span>${k}</span><span class="mono">${v}</span></div>`).join("");
+
+  const days = Object.keys(dailyStats).sort();
+  const chartHtml = days.length > 1 ? `
+    <h3 style="margin:16px 0 8px;font-size:14px">Daily Trend</h3>
+    <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    <div class="chart-legend">
+      <span class="legend-item"><span class="legend-color" style="background:var(--ok)"></span>Successful</span>
+      <span class="legend-item"><span class="legend-color" style="background:var(--bad)"></span>Aborted</span>
+      <span class="legend-item"><span class="legend-color" style="background:var(--accent)"></span>Total</span>
+    </div>` : "";
+
+  const funnelHtml = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <div class="card" style="flex:1;min-width:140px"><div class="kpi mono">${total}</div><div class="lbl">Total Sessions</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="kpi mono ok">${paid}</div><div class="lbl">Successful</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="kpi mono bad">${aborted}</div><div class="lbl">Aborted</div></div>
+      <div class="card" style="flex:1;min-width:140px"><div class="kpi mono warn">${paused}</div><div class="lbl">Paused</div></div>
+    </div>
+    <div style="height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:16px">
+      <div style="width:${total?Math.round(paid/total*100):0}%;height:100%;background:var(--ok);transition:width .3s"></div>
+    </div>
+    ${chartHtml}
+    <h3 style="margin:16px 0 8px;font-size:14px">Error Breakdown (Aborted Sessions)</h3>
+    ${errorRows || '<span class="muted">No aborted sessions yet.</span>'}
+    <h3 style="margin:24px 0 8px;font-size:14px">Merchant P&L Summary</h3>
+    <div class="insight-row"><span>Revenue Rescued</span><span class="mono">${paise(metrics.rescuedRevenuePaise)}</span></div>
+    <div class="insight-row"><span>Own-Cost Discounts Given</span><span class="mono">${paise(metrics.ownCostDiscountPaise)}</span></div>
+    <div class="insight-row"><span>Externally Funded Offers</span><span class="mono">${metrics.fundedDiscountSessions}</span></div>
+    <div class="insight-row"><span>Lost Revenue (Aborts)</span><span class="mono">${paise(metrics.lostRevenuePaise)}</span></div>
+  `;
+  $("#analytics-view").innerHTML = funnelHtml;
+
+  if (days.length > 1) drawTrendChart(days, dailyStats);
+}
+
+function drawTrendChart(days, stats) {
+  const canvas = $("#trend-chart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth;
+  canvas.width = w * dpr;
+  canvas.height = 200 * dpr;
+  canvas.style.width = w + "px";
+  canvas.style.height = "200px";
+  ctx.scale(dpr, dpr);
+  const h = 200;
+  const padding = {top:20, right:20, bottom:30, left:50};
+  const plotW = w - padding.left - padding.right;
+  const plotH = h - padding.top - padding.bottom;
+  const maxVal = Math.max(...days.map(d => Math.max(stats[d].total, stats[d].paid, stats[d].aborted)), 1);
+  const x = (i) => padding.left + (i / (days.length - 1 || 1)) * plotW;
+  const y = (v) => padding.top + plotH - (v / maxVal) * plotH;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = "11px -apple-system, Segoe UI, Roboto";
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+
+  // Grid lines
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue("--line").trim();
+  ctx.beginPath();
+  for (let i = 0; i <= 4; i++) {
+    const yy = padding.top + (i / 4) * plotH;
+    ctx.moveTo(padding.left, yy);
+    ctx.lineTo(w - padding.right, yy);
+    ctx.fillText(Math.round(maxVal * (1 - i/4)), 5, yy + 4);
+  }
+  ctx.stroke();
+
+  // Lines
+  const datasets = [
+    {key:"paid", color:getComputedStyle(document.documentElement).getPropertyValue("--ok").trim(), label:"Successful"},
+    {key:"aborted", color:getComputedStyle(document.documentElement).getPropertyValue("--bad").trim(), label:"Aborted"},
+    {key:"total", color:getComputedStyle(document.documentElement).getPropertyValue("--accent").trim(), label:"Total"}
+  ];
+  for (const ds of datasets) {
+    ctx.beginPath();
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = 2;
+    days.forEach((d, i) => {
+      const v = stats[d][ds.key] || 0;
+      if (i === 0) ctx.moveTo(x(i), y(v));
+      else ctx.lineTo(x(i), y(v));
+    });
+    ctx.stroke();
+    // Points
+    days.forEach((d, i) => {
+      const v = stats[d][ds.key] || 0;
+      ctx.beginPath();
+      ctx.arc(x(i), y(v), 4, 0, Math.PI * 2);
+      ctx.fillStyle = ds.color;
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+    });
+  }
+
+  // X-axis labels
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+  days.forEach((d, i) => {
+    ctx.fillText(d.slice(-4), x(i) - 12, h - padding.bottom + 18);
+  });
+}
+
+const AUTO_SIM_SCENARIOS = [
+  { name: "UPI rail fails", intent: "Get me running shoes under ₹5000", skus: [{sku:"nike-peg-41",qty:1}], failRails:["upi"], expect: "PAID via Card" },
+  { name: "All rails fail", intent: "Get me running shoes under ₹5000", skus: [{sku:"nike-peg-41",qty:1}], failRails:["upi","card","netbanking","wallet"], expect: "ABORTED PAYMENT_DECLINED" },
+  { name: "Offer expires instantly", intent: "Get me running shoes under ₹4000", skus: [{sku:"nike-peg-41",qty:1}], offerTtlMs: 0, expect: "ABORTED OFFER_EXPIRED" },
+  { name: "Cart drift after consent", intent: "Get me running shoes under ₹5000", skus: [{sku:"nike-peg-41",qty:1}], forceDrift: true, expect: "ABORTED CART_DRIFT" },
+  { name: "Buyer gate: over stretch (no flex)", intent: "Get me running shoes under ₹4000", skus: [{sku:"nike-peg-41",qty:1}], expect: "ABORTED BUDGET_EXCEEDED" },
+  { name: "Buyer gate: insufficient matches", intent: "Get me running shoes under ₹5000 stretch by 1000 if Nike", skus: [{sku:"adidas-ultra-4d",qty:1}], expect: "PAUSED_FOR_HUMAN" },
+  { name: "Merchant gate: floor margin", intent: "Get me running shoes under ₹3000", skus: [{sku:"nike-peg-41",qty:1}], policyOverrides: {floorMarginPct: 30}, expect: "ABORTED NO_FITTING_OPTION" },
+  { name: "Merchant gate: daily budget exhausted", intent: "Get me running shoes under ₹4000", skus: [{sku:"nike-peg-41",qty:1}], policyOverrides: {dailyReleaseBudgetPaise: 50000}, expect: "ABORTED NO_FITTING_OPTION" },
+  { name: "Merchant gate: cooldown", intent: "Get me running shoes under ₹4000", skus: [{sku:"nike-peg-41",qty:1}], repeatUser: true, expect: "ABORTED NO_FITTING_OPTION" },
+  { name: "No external funding fits", intent: "Get me running shoes under ₹3500", skus: [{sku:"nike-peg-41",qty:1}], policyOverrides: {floorMarginPct: 25}, expect: "ABORTED NO_FITTING_OPTION" },
+  { name: "Brand campaign rescue", intent: "Get me running shoes under ₹4000", skus: [{sku:"nike-peg-41",qty:1}], expect: "PAID (brand-funded)" },
+  { name: "Rail offer rescue", intent: "Get me running shoes under ₹4500", skus: [{sku:"adidas-ultra-4d",qty:1}], expect: "PAID (rail-funded)" },
+  { name: "Bundle swap rescue", intent: "Get me running shoes under ₹3800", skus: [{sku:"nike-peg-41",qty:1}], expect: "PAID (swap)" },
+  { name: "Partial rescue (price cut)", intent: "Get me running shoes under ₹4200", skus: [{sku:"nike-peg-41",qty:1}], expect: "PAID (partial)" },
+  { name: "Cross-sell: affinity", intent: "Get me running shoes under ₹5500", skus: [{sku:"nike-peg-41",qty:1}], expect: "DIRECT_PAID + upsell" },
+  { name: "Cross-sell: declared criteria", intent: "Get me running shoes under ₹5000. Extras only from Jockey.", skus: [{sku:"adidas-ultra-4d",qty:1}], expect: "DIRECT_PAID + upsell" },
+];
+
+async function runAutoSim() {
+  const btn = $("#auto-sim-btn");
+  const output = $("#auto-sim-output");
+  btn.disabled = true;
+  output.classList.remove("hidden");
+  output.innerHTML = "";
+
+  for (let i = 0; i < AUTO_SIM_SCENARIOS.length; i++) {
+    const s = AUTO_SIM_SCENARIOS[i];
+    const line = document.createElement("div");
+    line.className = "sim-line";
+    line.innerHTML = `<span class="sim-dot running"></span> <span class="mono">[${i+1}/${AUTO_SIM_SCENARIOS.length}]</span> ${s.name}...`;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+
+    const csrfToken = await getCsrfToken();
+    const body = {
+      intentText: s.intent,
+      skus: s.skus,
+      failRails: s.failRails || [],
+      offerTtlMs: s.offerTtlMs,
+      forceDrift: s.forceDrift,
+      policyOverrides: s.policyOverrides,
+      consentSharing: "none",
+      csrfToken,
+    };
+    if (s.repeatUser) body.intentText += ` (repeat user)`;
+
+    try {
+      const res = await fetch("/api/session", { method: "POST", headers: {"content-type":"application/json"}, body: JSON.stringify(body) });
+      const data = await res.json();
+      const ok = res.ok && (data.outcome === "PAID" || data.outcome === "DIRECT_PAID" || data.outcome === "ABORTED" || data.outcome === "PAUSED_FOR_HUMAN");
+      const short = data.outcome + (data.reason ? " " + data.reason : "") + (data.paidVia ? " via " + data.paidVia : "");
+      line.innerHTML = `<span class="sim-dot ${ok?"ok":"bad"}"></span> <span class="mono">[${i+1}/${AUTO_SIM_SCENARIOS.length}]</span> ${s.name} → ${short}`;
+    } catch (e) {
+      line.innerHTML = `<span class="sim-dot bad"></span> <span class="mono">[${i+1}/${AUTO_SIM_SCENARIOS.length}]</span> ${s.name} → ERROR: ${e.message}`;
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  btn.disabled = false;
+  document.querySelector('nav a[data-tab="analytics"]').click();
+  await renderAnalytics();
+}
+
+function initJudgeMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("judge") === "1") {
+    document.body.classList.add("judge-mode");
+    setTimeout(() => {
+      document.querySelector('nav a[data-tab="run"]').click();
+      $("#intent-input").value = "Get me running shoes under ₹5000. Extras only from Jockey.";
+      const nike = document.querySelector('input[value="nike-peg-41"]');
+      if (nike) nike.checked = true;
+      $("#run-btn").click();
+    }, 500);
+  }
+}
+
+initTheme();
+initJudgeMode();
+$("#auto-sim-btn").addEventListener("click", runAutoSim);
 loadCatalog().then(refreshFeed).then(() => setInterval(refreshFeed, 8000));
 </script>
 </body>

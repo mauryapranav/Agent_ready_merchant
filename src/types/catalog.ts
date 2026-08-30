@@ -40,6 +40,8 @@ export interface FundedCampaign {
   validTo: string;
 }
 
+export type SwapAlternatives = Record<string, string[]>;
+
 export type OfferSurface = {
   coupons: Coupon[];
   railOffers: RailOffer[];

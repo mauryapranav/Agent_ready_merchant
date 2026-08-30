@@ -21,18 +21,24 @@ after(() => {
 
 const BUDGET_PAISE = 20000;
 
-const body = {
+const baseBody = {
   intentText: "Get me running shoes under ₹4000",
   skus: [{ sku: "nike-peg-41", qty: 1 }],
   policyOverrides: { dailyReleaseBudgetPaise: BUDGET_PAISE },
   waterfallDisabled: ["funded_campaign", "rail_offer", "bundle_swap"],
 };
 
-async function postSession(): Promise<Record<string, unknown>> {
+async function getCsrfToken(): Promise<string> {
+  const res = await fetch(`http://127.0.0.1:${port}/api/csrf-token`);
+  const data = (await res.json()) as { csrfToken: string };
+  return data.csrfToken;
+}
+
+async function postSession(csrfToken: string): Promise<Record<string, unknown>> {
   const res = await fetch(`http://127.0.0.1:${port}/api/session`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...baseBody, csrfToken }),
   });
   return (await res.json()) as Record<string, unknown>;
 }
@@ -51,10 +57,12 @@ async function getFeed(): Promise<FeedRecord[]> {
 }
 
 test("release ledger binds across sessions: daily budget survives multiple HTTP requests", async () => {
-  const r1 = await postSession();
+  const token1 = await getCsrfToken();
+  const r1 = await postSession(token1);
   assert.equal(r1.outcome, "PAID", `first session should rescue within fresh budget, got ${r1.outcome}`);
 
-  const r2 = await postSession();
+  const token2 = await getCsrfToken();
+  const r2 = await postSession(token2);
   assert.notEqual(r2.outcome, "PAID", "second session must not rescue after budget exhausted by first");
 
   const records = await getFeed();

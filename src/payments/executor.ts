@@ -1,5 +1,6 @@
 import type { Rail } from "../types/mandate.js";
-import { createRazorpayClient, credentialsFromEnv, type RazorpayClient } from "../razorpay/client.js";
+import { createRazorpayClient, credentialsFromEnv, type RazorpayClient, type RazorpayCredentials } from "../razorpay/client.js";
+import { getRazorpayClient, createCheckoutSession, verifyPaymentSignature } from "./checkout.js";
 
 export interface PaymentResult {
   ok: boolean;
@@ -7,6 +8,7 @@ export interface PaymentResult {
   errorCode: string | null;
   razorpayOrderId?: string | undefined;
   executor: "simulated" | "razorpay";
+  checkoutUrl?: string | undefined;
   replayed?: boolean | undefined;
 }
 
@@ -57,46 +59,54 @@ export class RazorpayExecutor implements PaymentExecutor {
   private orderIds = new Map<string, string>();
   private replayCache = new Map<string, PaymentResult>();
 
-  constructor(private readonly client: RazorpayClient) {}
+  constructor(
+    private readonly client: RazorpayClient,
+    private readonly creds: RazorpayCredentials | null
+  ) {}
 
   async charge(input: ChargeInput, opts: PaymentOptions = {}): Promise<PaymentResult> {
     const cached = this.replayCache.get(input.idempotencyKey);
     if (cached) {
       return { ...cached, replayed: true };
     }
-    const orderId = await this.ensureOrder(input);
+
+    const existingOrderId = this.orderIds.get(input.receiptId);
+    let orderId = existingOrderId;
+
     if (!orderId) {
-      return { ok: false, rail: input.rail, errorCode: "RAZORPAY_ORDER_FAILED", executor: "razorpay" };
+      try {
+        const checkout = await createCheckoutSession(this.client, this.creds, {
+          amountPaise: input.amountPaise,
+          receipt: input.receiptId,
+          rail: input.rail,
+          notes: { ...input.notes, settle_rail: input.rail, idempotency_key: input.idempotencyKey },
+        });
+        orderId = checkout.orderId;
+        this.orderIds.set(input.receiptId, orderId);
+      } catch (error) {
+        console.error("Failed to create checkout session:", error);
+        return { ok: false, rail: input.rail, errorCode: "RAZORPAY_ORDER_FAILED", executor: "razorpay" };
+      }
     }
+
     const instrumentOutcome = simulatePayment(input.rail, opts);
     const result: PaymentResult = instrumentOutcome.ok
       ? { ok: true, rail: input.rail, errorCode: null, razorpayOrderId: orderId, executor: "razorpay" }
       : { ok: instrumentOutcome.ok, rail: input.rail, errorCode: instrumentOutcome.errorCode, razorpayOrderId: orderId, executor: "razorpay" };
+    
     if (result.ok) {
       this.replayCache.set(input.idempotencyKey, result);
     }
     return result;
   }
 
-  private async ensureOrder(input: ChargeInput): Promise<string | null> {
-    const existing = this.orderIds.get(input.receiptId);
-    if (existing) {
-      return existing;
-    }
-    const result = await this.client.createOrder({
-      amountPaise: input.amountPaise,
-      receipt: input.receiptId,
-      notes: { ...input.notes, settle_rail: input.rail, idempotency_key: input.idempotencyKey },
-    });
-    if (!result.ok) {
-      return null;
-    }
-    this.orderIds.set(input.receiptId, result.data.id);
-    return result.data.id;
+  async verifyPayment(orderId: string, paymentId: string, signature: string): Promise<boolean> {
+    return verifyPaymentSignature(this.client, this.creds, orderId, paymentId, signature);
   }
 }
 
 export function defaultExecutor(): PaymentExecutor {
-  const client = createRazorpayClient(credentialsFromEnv());
-  return client.live ? new RazorpayExecutor(client) : new SimulatedExecutor();
+  const creds = credentialsFromEnv();
+  const client = createRazorpayClient(creds);
+  return client.live ? new RazorpayExecutor(client, creds) : new SimulatedExecutor();
 }

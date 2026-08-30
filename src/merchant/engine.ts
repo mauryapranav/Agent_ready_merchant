@@ -20,6 +20,7 @@ export interface WaterfallInput {
 export interface WaterfallOutcome {
   offer: CounterOffer | null;
   attempts: Array<{ step: WaterfallStep; gate: MerchantGateResult; viable: boolean }>;
+  updatedCampaigns: FundedCampaign[] | null;
 }
 
 export function buildCounterOffer(input: WaterfallInput): WaterfallOutcome {
@@ -33,43 +34,53 @@ export function buildCounterOffer(input: WaterfallInput): WaterfallOutcome {
     return {
       offer: { ...partial.offer, explanation: `Partial rescue — covers part of the gap; the buyer may stretch the rest if their rules allow. ${partial.offer.explanation}` },
       attempts: [...full.attempts, ...partial.attempts.map((a) => ({ ...a, step: a.step }))],
+      updatedCampaigns: partial.updatedCampaigns,
     };
   }
-  return { offer: null, attempts: [...full.attempts, ...partial.attempts] };
+  return { offer: null, attempts: [...full.attempts, ...partial.attempts], updatedCampaigns: partial.updatedCampaigns };
 }
 
 function runWaterfall(input: WaterfallInput, requiredDiscountPaise: number): WaterfallOutcome {
   const attempts: WaterfallOutcome["attempts"] = [];
   const steps = input.policy.waterfall.filter((w) => w.enabled).map((w) => w.step);
+  let currentCampaigns = input.campaigns ?? OFFER_SURFACE.campaigns;
 
   for (const step of steps) {
-    const candidate = buildCandidate(step, { ...input, requiredDiscountPaise });
+    const { offer: candidate, updatedCampaigns } = buildCandidate(step, { ...input, requiredDiscountPaise, campaigns: currentCampaigns });
     if (!candidate) {
       continue;
     }
     const gate = runGateForStep(step, candidate, input);
     attempts.push({ step, gate, viable: gate.allowed });
     if (gate.allowed) {
-      return { offer: candidate, attempts };
+      // If this was a campaign offer, use the updated campaigns; otherwise keep current
+      const finalCampaigns = updatedCampaigns ?? currentCampaigns;
+      return { offer: candidate, attempts, updatedCampaigns: finalCampaigns };
     }
+    // If campaign step was attempted but not viable, budgets were not decremented
   }
-  return { offer: null, attempts };
+  return { offer: null, attempts, updatedCampaigns: currentCampaigns };
 }
 
-function buildCandidate(step: WaterfallStep, input: WaterfallInput): CounterOffer | null {
+interface CandidateResult {
+  offer: CounterOffer | null;
+  updatedCampaigns: FundedCampaign[] | null;
+}
+
+function buildCandidate(step: WaterfallStep, input: WaterfallInput): CandidateResult {
   switch (step) {
     case "funded_campaign":
       return campaignCandidate(input);
     case "rail_offer":
-      return railCandidate(input);
+      return { offer: railCandidate(input), updatedCampaigns: null };
     case "bundle_swap":
-      return swapCandidate(input);
+      return { offer: swapCandidate(input), updatedCampaigns: null };
     case "price_cut":
-      return priceCutCandidate(input);
+      return { offer: priceCutCandidate(input), updatedCampaigns: null };
   }
 }
 
-function campaignCandidate(input: WaterfallInput): CounterOffer | null {
+function campaignCandidate(input: WaterfallInput): CandidateResult {
   const campaigns = input.campaigns ?? OFFER_SURFACE.campaigns;
   const valid = campaigns.filter(
     (c) =>
@@ -80,10 +91,13 @@ function campaignCandidate(input: WaterfallInput): CounterOffer | null {
   );
   const best = valid.sort((a, b) => a.flatOffPaise - b.flatOffPaise)[0];
   if (!best) {
-    return null;
+    return { offer: null, updatedCampaigns: null };
   }
-  best.remainingBudgetPaise -= best.flatOffPaise;
-  return makeOffer(input.cart.totalPaise - best.flatOffPaise, 0, best.fundedBy === "brand" ? "brand" : "merchant_marketing", { step: "funded_campaign", campaignId: best.campaignId }, `Covered by active campaign "${best.label}" — costs the merchant nothing.`, input.now, input.offerTtlMs);
+  const updatedCampaigns = campaigns.map((c) =>
+    c.campaignId === best.campaignId ? { ...c, remainingBudgetPaise: c.remainingBudgetPaise - best.flatOffPaise } : c
+  );
+  const offer = makeOffer(input.cart.totalPaise - best.flatOffPaise, 0, best.fundedBy === "brand" ? "brand" : "merchant_marketing", { step: "funded_campaign", campaignId: best.campaignId }, `Covered by active campaign "${best.label}" — costs the merchant nothing.`, input.now, input.offerTtlMs);
+  return { offer, updatedCampaigns };
 }
 
 function railCandidate(input: WaterfallInput): CounterOffer | null {

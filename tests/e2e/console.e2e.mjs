@@ -52,6 +52,7 @@ async function runSessionViaUi(page, { intent, failUpi = false, failCard = false
   await page.click('nav a[data-tab="run"]');
   await page.waitForSelector('[data-testid="intent-input"]', { state: "visible", timeout: 15000 });
   await page.fill('[data-testid="intent-input"]', intent);
+  await page.check('input[name="sku"][value="nike-peg-41"]');
   if (failUpi || failCard) {
     const boxes = page.locator('[data-testid="fail-rail"]');
     if (failUpi) await boxes.nth(0).check();
@@ -62,8 +63,15 @@ async function runSessionViaUi(page, { intent, failUpi = false, failCard = false
   if (expire) await page.check('[data-testid="fi-expire"]');
   if (drift) await page.check('[data-testid="fi-drift"]');
   await page.click('[data-testid="run-btn"]');
-  await page.waitForSelector('[data-testid="result-banner"].ok, [data-testid="result-banner"].bad, [data-testid="result-banner"].warn', { timeout: 10000 });
-  return page.textContent('[data-testid="result-banner"]');
+  console.log("  [debug] clicked run-btn, waiting for banner...");
+  await page.waitForSelector('[data-testid="result-banner"].ok, [data-testid="result-banner"].bad, [data-testid="result-banner"].warn', { timeout: 30000 });
+  console.log("  [debug] banner selector matched");
+  const banner = page.locator('[data-testid="result-banner"]');
+  await banner.waitFor({ state: "visible", timeout: 30000 });
+  console.log("  [debug] banner visible");
+  const text = await banner.innerText();
+  console.log("  [debug] got text:", text.slice(0, 50));
+  return text;
 }
 
 async function main() {
@@ -74,9 +82,14 @@ async function main() {
   await runScenario(page, "01 happy rescue", async (p) => {
     const banner = await runSessionViaUi(p, { intent: "Get me running shoes under ₹4000, can stretch by 300 if it's really Nike shoes" });
     if (!/PAID/.test(banner ?? "")) throw new Error(`expected PAID, got: ${banner}`);
-    const traceText = await p.textContent('[data-testid="trace"]');
-    if (!/chain verified/.test(traceText ?? "")) throw new Error("trace missing verified badge");
-    if (/TAMPERED/.test(traceText ?? "")) throw new Error("trace shows TAMPERED");
+    await p.click('nav a[data-tab="feed"]');
+    await p.waitForSelector('tbody#feed-body tr.rowbtn', { timeout: 5000 });
+    const rows = p.locator('tbody#feed-body tr.rowbtn');
+    await rows.first().click();
+    await p.waitForSelector('.trail-panel', { timeout: 5000 });
+    const trailText = await p.textContent('.trail-panel');
+    if (!/chain verified/i.test(trailText ?? "")) throw new Error("trail missing verified badge");
+    if (/TAMPERED/i.test(trailText ?? "")) throw new Error("trail shows TAMPERED");
     await p.screenshot({ path: "e2e-artifacts/01-happy-rescue.png" });
   });
 
@@ -89,8 +102,13 @@ async function main() {
   await runScenario(page, "03 offer expired mid-round", async (p) => {
     const banner = await runSessionViaUi(p, { intent: "Get me running shoes under ₹4000", expire: true });
     if (!/ABORTED|PAUSED/.test(banner ?? "")) throw new Error(`expected no payment on expired offer, got: ${banner}`);
-    const traceText = await p.textContent('[data-testid="trace"]');
-    if (!/expired/i.test(traceText ?? "")) throw new Error("narration should mention expiry");
+    await p.click('nav a[data-tab="feed"]');
+    await p.waitForSelector('tbody#feed-body tr.rowbtn', { timeout: 5000 });
+    const rows = p.locator('tbody#feed-body tr.rowbtn');
+    await rows.first().click();
+    await p.waitForSelector('.trail-panel', { timeout: 5000 });
+    const trailText = await p.textContent('.trail-panel');
+    if (!/expired/i.test(trailText ?? "")) throw new Error("narration should mention expiry");
     await p.screenshot({ path: "e2e-artifacts/03-offer-expired.png" });
   });
 

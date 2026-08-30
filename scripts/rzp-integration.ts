@@ -12,7 +12,7 @@ if (!creds) {
 }
 
 const client = createRazorpayClient(creds);
-const executor = new RazorpayExecutor(client);
+const executor = new RazorpayExecutor(client, creds);
 
 console.log(`Contacting Razorpay test API as ${creds.keyId.slice(0, 12)}...`);
 const result = await executor.charge({

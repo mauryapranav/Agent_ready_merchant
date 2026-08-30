@@ -40,6 +40,7 @@ export interface SessionOutcome {
   tipSignatures: { buyer: TipSignature | null; merchant: TipSignature | null };
   buyerLedger: AuditLedger;
   merchantLedger: AuditLedger;
+  updatedCampaigns: import("../types/catalog.js").FundedCampaign[] | null;
 }
 
 const MAX_PAYMENT_ATTEMPTS = 3;
@@ -57,7 +58,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
   buyerLedger.append("CART_CONSENT", { cartHash: mandate.cartHashAtConsent }, now);
 
   if (!cartHashMatches(mandate, cart)) {
-    return finish(sessionId, "ABORTED", null, "CART_DRIFT", null, null, executor.name, buyerLedger, merchantLedger, now, "Cart changed after consent — refusing to pay stale prices.", keys);
+    return finish(sessionId, "ABORTED", null, "CART_DRIFT", null, null, executor.name, buyerLedger, merchantLedger, now, "Cart changed after consent — refusing to pay stale prices.", keys, null);
   }
 
   if (cart.totalPaise <= mandate.hardCapPaise) {
@@ -83,9 +84,9 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     const payment = await attemptPayment(executor, mandate.allowedRails, input.failRails ?? [], payableTotal, sessionId, buyerLedger, now);
     if (payment.ok) {
       const upsold = payableTotal > cart.totalPaise;
-      return finish(sessionId, "DIRECT_PAID", payableTotal, null, payment.rail, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, `${upsold ? "Attachment accepted within your cap — " : ""}Total ₹${(payableTotal / 100).toFixed(0)} within cap. Paid directly.${upsold ? ` (+₹${((payableTotal - cart.totalPaise) / 100).toFixed(0)} attached)` : ""}`, keys);
+      return finish(sessionId, "DIRECT_PAID", payableTotal, null, payment.rail, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, `${upsold ? "Attachment accepted within your cap — " : ""}Total ₹${(payableTotal / 100).toFixed(0)} within cap. Paid directly.${upsold ? ` (+₹${((payableTotal - cart.totalPaise) / 100).toFixed(0)} attached)` : ""}`, keys, null);
     }
-    return finish(sessionId, "ABORTED", null, "PAYMENT_DECLINED", null, null, executor.name, buyerLedger, merchantLedger, now, "All payment rails declined.", keys);
+    return finish(sessionId, "ABORTED", null, "PAYMENT_DECLINED", null, null, executor.name, buyerLedger, merchantLedger, now, "All payment rails declined.", keys, null);
   }
 
   const gapPaise = cart.totalPaise - mandate.hardCapPaise;
@@ -103,6 +104,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     offerTtlMs: input.offerTtlMs,
     campaigns: input.campaigns,
   });
+  const updatedCampaigns = wf.updatedCampaigns;
   const signedOfferEvent = (() => {
     if (!wf.offer || !keys) return null;
     const artifact = {
@@ -127,7 +129,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
   );
 
   if (!wf.offer) {
-    return finish(sessionId, "ABORTED", null, "NO_FITTING_OPTION", null, null, executor.name, buyerLedger, merchantLedger, now, "Merchant could not make a profitable offer. I stopped instead of overpaying.", keys);
+    return finish(sessionId, "ABORTED", null, "NO_FITTING_OPTION", null, null, executor.name, buyerLedger, merchantLedger, now, "Merchant could not make a profitable offer. I stopped instead of overpaying.", keys, updatedCampaigns);
   }
 
   const decision = decideOnOffer(
@@ -141,9 +143,9 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
 
   if (!decision.accepted) {
     if (decision.gate.trace.verdict === "REJECT_INSUFFICIENT_MATCHES") {
-      return finish(sessionId, "PAUSED_FOR_HUMAN", null, "OFFER_INVALID", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys);
+      return finish(sessionId, "PAUSED_FOR_HUMAN", null, "OFFER_INVALID", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
     }
-    return finish(sessionId, "ABORTED", null, "BUDGET_EXCEEDED", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys);
+    return finish(sessionId, "ABORTED", null, "BUDGET_EXCEEDED", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
   }
 
   const acceptedOffer = wf.offer;
@@ -158,7 +160,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     discountPaise: cart.totalPaise - acceptedOffer.newTotalPaise,
   });
   if (!payment.ok) {
-    return finish(sessionId, "ABORTED", null, "PAYMENT_DECLINED", null, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, "Every allowed payment method was declined. Bounded retries exhausted — handing back to you.", keys);
+    return finish(sessionId, "ABORTED", null, "PAYMENT_DECLINED", null, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, "Every allowed payment method was declined. Bounded retries exhausted — handing back to you.", keys, updatedCampaigns);
   }
 
   if (acceptedOffer.merchantCostPaise > 0) {
@@ -166,7 +168,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     merchantLedger.append("DISCOUNT_LEDGERED", { sessionId, cost: acceptedOffer.merchantCostPaise, step: acceptedOffer.mechanism.step }, now);
   }
 
-  return finish(sessionId, "PAID", acceptedOffer.newTotalPaise, null, payment.rail, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys);
+  return finish(sessionId, "PAID", acceptedOffer.newTotalPaise, null, payment.rail, payment.razorpayOrderId ?? null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
 }
 
 function cartHashMatches(mandate: Mandate, cart: CartState): boolean {
@@ -214,7 +216,8 @@ function finish(
   merchantLedger: AuditLedger,
   now: Date,
   narration: string,
-  signingKeys?: SigningKeyPair | undefined
+  signingKeys?: SigningKeyPair | undefined,
+  updatedCampaigns?: import("../types/catalog.js").FundedCampaign[] | null
 ): SessionOutcome {
   buyerLedger.append("SETTLEMENT_RESULT", { sessionId, outcome, finalTotalPaise, reason, narration }, now);
   merchantLedger.append("SETTLEMENT_RESULT", { sessionId, outcome, finalTotalPaise }, now);
@@ -222,5 +225,5 @@ function finish(
     buyer: signingKeys ? { hash: buyerLedger.tip ?? "", signature: signTip(buyerLedger.tip ?? "", signingKeys.privateKeyPem) } : null,
     merchant: signingKeys ? { hash: merchantLedger.tip ?? "", signature: signTip(merchantLedger.tip ?? "", signingKeys.privateKeyPem) } : null,
   };
-  return { sessionId, outcome, finalTotalPaise, reason, paidVia, razorpayOrderId, paymentExecutor, tipSignatures, buyerLedger, merchantLedger };
+  return { sessionId, outcome, finalTotalPaise, reason, paidVia, razorpayOrderId, paymentExecutor, tipSignatures, buyerLedger, merchantLedger, updatedCampaigns: updatedCampaigns ?? null };
 }

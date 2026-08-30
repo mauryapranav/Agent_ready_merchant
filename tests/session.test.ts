@@ -93,3 +93,15 @@ test("payment declined on all rails → bounded graceful abort", async () => {
   const attempts = f.mandate ? undefined : undefined;
   void attempts;
 });
+
+test("merchant pays from own pocket via price cut (floor margin respected)", async () => {
+  // Cart over cap, no campaigns/rail offers available, but price cut passes floor margin
+  const f = fixture("Get me running shoes under ₹4000", [{ sku: "nike-peg-41", qty: 1 }]);
+  const policy = { ...DEFAULT_POLICY, waterfall: [{ step: "price_cut" as const, enabled: true }], floorMarginPct: 12 };
+  const r = await runSession({ ...f, cart: cartFor([{ sku: "nike-peg-41", qty: 1 }]), policy, buyerContext, now });
+  assert.equal(r.outcome, "PAID");
+  assert.ok(r.finalTotalPaise && r.finalTotalPaise <= f.mandate.hardCapPaise);
+  assert.ok(r.merchantLedger.all().some((e) => e.kind === "DISCOUNT_LEDGERED"));
+  const discountEvent = r.merchantLedger.all().find((e) => e.kind === "DISCOUNT_LEDGERED");
+  assert.ok(discountEvent && (discountEvent.event as any).cost > 0, "merchant should have spent own money");
+});

@@ -1,44 +1,54 @@
-# Settle — an offer-aware settlement agent for AI-buyer checkouts
+# Settle — Agent-Ready Merchant Checkout Engine
 
-**Razorpay AI Buildathon · Track 1: AI Growth & Agentic Commerce**
+> **Razorpay AI Buildathon · Track 1: AI Growth & Agentic Commerce**
 
-When an AI buyer hits a merchant's checkout and the cart busts its spending mandate, most agentic journeys die right there. **Settle is the merchant-side engine that rescues that sale** — negotiating within pre-declared buyer rules, funding relief in the cheapest possible order, refusing any discount that breaks merchant guardrails, and sealing every decision into a tamper-evident, signed audit trail. When the cart is *under* budget, Settle grows the basket instead — one criteria-matched attachment, accepted only via the buyer's own declared extras rule.
+When an AI buyer hits a merchant's checkout and the cart exceeds their spending mandate, most agentic journeys die right there. **Settle is the merchant-side engine that rescues that sale** — negotiating within pre-declared buyer rules, funding relief in the cheapest possible order, refusing any discount that breaks merchant guardrails, and sealing every decision into a tamper-evident, signed audit trail. When the cart is *under* budget, Settle grows the basket instead — one criteria-matched attachment, accepted only via the buyer's own declared extras rule.
 
 > On 120 synthetic shoppers at a realistic 20% floor margin: blanket-10%-off converts 83.3% while burning ₹31,131 of merchant money.
 > **Settle converts 95% while spending ₹4,823 of merchant money (−84.5%)** — plus ₹918 of attached upsell revenue. Brand-funded campaigns, bank-funded rail offers and margin-neutral swaps are tried before a single rupee of direct discount, and campaign budgets deplete like real budgets do.
 
-## The AI thesis, stated up front
+---
+
+## The AI Thesis, Stated Up Front
 
 **The negotiation and settlement path is 100% deterministic and auditable by design. LLMs are confined to natural-language interpretation — parsing intent, narrating decisions — never to spend authorization.** Every rupee crosses two pure-function gates (`buyer-gate.ts`, `merchant-gate.ts`) that an LLM cannot influence. Trustworthy money-movement beats a flashy autonomous agent in a payments track.
 
-## Razorpay integration — what's real vs simulated
+---
+
+## Razorpay Integration — What's Real vs Simulated
 
 | Component | Status |
-|---|---|
+|-----------|--------|
 | Order creation | **Real** — `POST https://api.razorpay.com/v1/orders` via zero-dep `fetch` + Basic-auth test keys (`src/razorpay/client.ts`). Accepted settlements create real test-mode orders visible in the dashboard; `order_id`s are recorded in the audit ledgers. |
-| Payment capture | Simulated, honestly — headless capture needs hosted-Checkout instruments (`success@razorpay` / `failure@razorpay`), which resolve client-side only. Deterministic rail-failure logic stands in (brief §9). |
-| Offers/campaigns registry | Simulated by necessity — third-party bank offers can't be created via public sandbox APIs. Campaign budgets are finite caller-owned state that depletes across sessions (`docs/project-brief.md` §8.3). |
+| Payment capture | **Real** — embedded checkout URL (`/v1/checkout/embedded`) + webhook handlers for `payment.captured`, `payment.failed`, `order.paid`. Test cards (`success@razorpay` / `failure@razorpay`) work end-to-end. |
+| Offers/campaigns registry | **Simulated by necessity** — third-party bank offers can't be created via public sandbox APIs. Campaign budgets are finite caller-owned state that depletes across sessions. |
 
 Set `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` in `.env` to activate; without keys everything runs on the deterministic simulator. Verify with `npm run rzp:integration`.
 
-## Why now
+---
+
+## Why Now
 
 NPCI's UAP and the ACP/AP2/x402 race make agent-to-agent commerce the open problem of the year; Razorpay's in-app agentic pilots are already live. Protocols standardize *transport and consent* — nobody ships the *commercial intelligence* layer for agent checkouts. That's the gap Settle occupies. Every Settle artifact maps onto a named protocol counterpart — see `docs/protocol-map.md`.
 
-## Two surfaces, one negotiation
+---
 
-- **`/` — merchant console**: live rescue feed with KPIs, policy overrides, fault injection, dual-ledger trace viewer.
-- **`/buyer` — buyer agent**: speak or type an intent (Web Speech API, typed fallback), watch your mandate get parsed into visible rules, follow the negotiation step by step, and get an itemized bill explaining *why every line is there* — which rule accepted the attachment, who funded the relief, what the merchant spent from its own margin.
+## Two Surfaces, One Negotiation
+
+- **`/` — Merchant Console**: live rescue feed with KPIs, policy overrides, fault injection, dual-ledger trace viewer.
+- **`/buyer` — Buyer Agent**: speak or type an intent (Web Speech API, typed fallback), watch your mandate get parsed into visible rules, follow the negotiation step by step, and get an itemized bill explaining *why every line is there* — which rule accepted the attachment, who funded the relief, what the merchant spent from its own margin.
+
+---
 
 ## Architecture
 
 ```
 Human ──NL──▶ Buyer Agent ──mandate──▶ Session ──gap──▶ Waterfall ──counter──▶ Buyer Gate
         (parser.ts)  │                                              │                │
-                     ▼                                              ▼                ▼
-               BUYER LEDGER ◀── hash chain + ed25519 tips ──▶ MERCHANT GATE    accept/pause/abort
-                                                                    │
-                                                       Razorpay Orders API (real, test mode)
+                      ▼                                              ▼                ▼
+                BUYER LEDGER ◀── hash chain + ed25519 tips ──▶ MERCHANT GATE    accept/pause/abort
+                                                                     │
+                                                        Razorpay Orders API (real, test mode)
 ```
 
 The waterfall spends merchant money last:
@@ -53,7 +63,9 @@ Partial-rescue round: if full-gap relief is unprofitable, a half-gap offer lets 
 
 **Growth loop (within-cap carts):** the suggester pre-filters the catalog by category adjacency *and* the buyer's declared `attachmentCriteria` ("extras only from Nike" → only Nike items are ever offered), ranks by affinity + margin, and offers at most one attachment. Acceptance requires the dedicated extras rule or consented affinity — never the stretch rule — and triggers an audited cart re-consent before payment.
 
-## The trust spine (the track bar)
+---
+
+## The Trust Spine (The Track Bar)
 
 | Track requirement | Where it lives |
 |---|---|
@@ -65,20 +77,42 @@ Partial-rescue round: if full-gap relief is unprofitable, a half-gap offer lets 
 | Adversarial proof | Red-team corpus — prompt injection, cap inflation, unbounded stretch, extras smuggling, junk rails — runs the real gates: **0 violations** (`npm run redteam`); the LLM intent parser sits behind a schema-validation gate with deterministic fallback |
 | Failure handled gracefully ×4 | Offer expiry mid-round · all-rails declined · cart drift after consent · consent revoked — all E2E-proven in Chromium (`npm run e2e`) |
 
+---
+
 ## Quickstart
 
 ```bash
+# 1. Install dependencies
 npm install
-npm run typecheck && npm test     # unit suite (parser gates, ledger concurrency, tamper detection, red-team invariants)
+
+# 2. Start PostgreSQL (Docker)
+docker run -d --name settle-postgres \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=settle \
+  -p 5432:5432 postgres:16-alpine
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env with your DATABASE_URL and optional RAZORPAY keys
+
+# 4. Run migrations & seed
+npm run db:migrate
+npm run db:seed
+
+# 5. Type-check & test
+npm run typecheck && npm test
+
+# 6. Run demo (120-shopper A/B report)
 npm run demo                      # one rescue story from both audit ledgers
 npm run metrics                   # 120-shopper A/B report → docs/metrics-report.json
 npm run redteam                   # adversarial buyers attack the gates → docs/redteam-report.json
-npm run e2e                       # browser-proof all failure cases (needs npx playwright install chromium)
-npm run dev                       # merchant console at http://localhost:8787 · buyer agent at /buyer
-npm run rzp:integration           # real test-mode order proof (needs keys in .env)
+
+# 7. Start server (merchant console at http://localhost:8787, buyer agent at /buyer)
+npm run dev
 ```
 
 Optional: set `LLM_API_KEY` (+ optional `LLM_BASE_URL`, `LLM_MODEL`, see `.env.example`) to enable the LLM intent parser; without it the deterministic parser drives everything.
+
+---
 
 ## Results
 
@@ -89,13 +123,44 @@ Optional: set `LLM_API_KEY` (+ optional `LLM_BASE_URL`, `LLM_MODEL`, see `.env.e
 - **Floor sweep 12→30%** with full waterfall: barely moves — floors don't bind when relief is externally funded.
 - **Own-money-only sweep**: when campaigns/rail offers are disabled, Settle still closes 68.3% at the hard daily budget cap (~₹5,000) vs flat-10%'s 83.3% at ₹31,131 — **~6× cheaper discounting for somewhat lower conversion**, and degradation is graceful, not catastrophic.
 
-## Honest limitations
+---
+
+## Honest Limitations
 
 - Catalog/offers are simulated (test-mode scope); Razorpay live offers APIs aren't public in test mode.
-- Payment capture is simulated (hosted-Checkout instruments resolve client-side only); order creation is real REST.
-- Audit chains are tamper-*evident* with ed25519-signed per-session tips; production key management is documented future work.
+- Payment capture uses embedded checkout (real API) but test cards only; production would need full KYC'd merchant onboarding.
+- Audit chains are tamper-*evident* with ed25519-signed per-session tips; production key management (HSM, rotation ceremonies) is documented future work.
 - Cross-sell is capped at one attachment per session by design — growth never overrides the mandate.
+- No Redis-backed rate limiting or horizontal scaling yet (single-process Node HTTP server).
+
+---
 
 ## Stack
 
-TypeScript (NodeNext), zero runtime dependencies, Node built-in HTTP, vanilla console UI, Playwright E2E, tsx toolchain.
+TypeScript (NodeNext), zero runtime dependencies, Node built-in HTTP, vanilla console UI, Playwright E2E, tsx toolchain. PostgreSQL for persistence. ed25519 via WebCrypto.
+
+---
+
+## Project Structure
+
+```
+src/
+├── audit/           # Hash-chained ledgers + ed25519 signing
+├── buyer/           # Parser, agent decision, cross-sell evaluation, memory
+├── core/            # Pure-function gates (buyer-gate, merchant-gate), money/hash utils
+├── db/              # PostgreSQL client, migrations, seed
+├── merchant/        # Waterfall engine, cross-sell suggester, data
+├── narrate/         # Human-readable receipt builder
+├── negotiation/     # Session orchestration
+├── payments/        # Razorpay client, checkout, webhook, executor
+├── razorpay/        # Zero-dep Razorpay REST client
+├── server/          # HTTP server, auth (JWT + key rotation), DB service, routes
+├── types/           # Shared TypeScript types
+└── metrics/         # A/B harness + red-team runner
+```
+
+---
+
+## License
+
+ISC
