@@ -26,3 +26,10 @@ Thumbs.db
 
 # local data (audit logs, synthetic runs)
 data/local/
+
+# AI / agent files (not for repo)
+.agents/
+SESSION_LOG.md
+skills-lock.json
+fix_esc*.js
+fix_esc*.mjs
