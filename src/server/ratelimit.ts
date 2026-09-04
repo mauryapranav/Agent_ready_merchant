@@ -10,8 +10,9 @@ export const DEFAULT_RATE_LIMIT: RateLimitConfig = { capacity: 10, refillPerMinu
 export function getClientIp(req: import("node:http").IncomingMessage): string {
   const forwarded = req.headers["x-forwarded-for"];
   if (!forwarded) return req.socket.remoteAddress ?? "unknown";
-  const ip = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0];
-  return ip.trim();
+  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0];
+  const trimmed = (first ?? "").trim();
+  return trimmed || (req.socket.remoteAddress ?? "unknown");
 }
 
 export function allowRequest(key: string, config: RateLimitConfig = DEFAULT_RATE_LIMIT): boolean {
