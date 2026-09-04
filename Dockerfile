@@ -21,5 +21,6 @@ USER nodejs
 
 EXPOSE 8787
 
-# Run migrations + seed on first start, then start server
+# Run migrations + seed, then start server
+# Hatchable provides DATABASE_URL automatically
 CMD ["sh", "-c", "npm run db:migrate && npm run db:seed && npm start"]

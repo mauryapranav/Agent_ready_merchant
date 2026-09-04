@@ -1,0 +1,13 @@
+{
+  "build": "npm ci && npm run db:migrate && npm run db:seed",
+  "start": "npm start",
+  "port": 8787,
+  "engine": "node@20",
+  "env": {
+    "RAZORPAY_KEY_ID": "rzp_test_TTaLBDuGRth05g",
+    "RAZORPAY_KEY_SECRET": "lFReZ5MGVs0TdYGs7OgMxhKu",
+    "PORT": "8787",
+    "LLM_BASE_URL": "https://api.groq.com/openai/v1",
+    "LLM_MODEL": "llama-3.1-70b-versatile"
+  }
+}
