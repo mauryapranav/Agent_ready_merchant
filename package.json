@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && cp -r public dist/public",
-    "start": "npm run db:migrate && npm run db:seed && node dist/server/api.js",
+    "start": "npm run db:migrate && npm run db:seed && node dist/src/server/api.js",
     "dev": "tsx watch src/server/api.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
