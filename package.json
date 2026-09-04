@@ -4,10 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc && cp -r public dist/public",
+    "start": "npm run db:migrate && npm run db:seed && node dist/server/api.js",
+    "dev": "tsx watch src/server/api.ts",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "dev": "tsx watch src/server/api.ts",
-    "start": "tsx src/server/api.ts",
     "demo": "tsx src/demo/rescue-demo.ts",
     "e2e": "node tests/e2e/console.e2e.mjs",
     "metrics": "tsx src/metrics/run-report.ts",
@@ -22,13 +23,13 @@
   "type": "module",
   "dependencies": {
     "pg": "^8.11.5",
-    "jose": "^5.2.3"
+    "jose": "^5.2.3",
+    "tsx": "^4.23.12"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@types/pg": "^8.11.2",
     "playwright": "^1.62.1",
-    "tsx": "^4.23.12",
     "typescript": "^7.0.2"
   }
 }

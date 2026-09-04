@@ -7,10 +7,14 @@ const { Pool } = pg;
 
 const __dirname = join(fileURLToPath(import.meta.url), "..");
 
+const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/settle";
+const isNeon = connectionString.includes("neon.tech");
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/settle",
+  connectionString,
   max: 10,
   idleTimeoutMillis: 30000,
+  ...(isNeon && { ssl: { rejectUnauthorized: false } }),
 });
 
 export async function query<T extends pg.QueryResultRow = any>(text: string, params?: any[]): Promise<pg.QueryResult<T>> {

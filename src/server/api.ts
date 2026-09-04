@@ -11,7 +11,7 @@ import { saveRecord, recentRecords, computeMetrics } from "./store.js";
 import type { Rail } from "../types/mandate.js";
 import { defaultExecutor, type PaymentExecutor } from "../payments/executor.js";
 import { generateSigningKeyPair, signPayload, signTip } from "../audit/signing.js";
-import { allowRequest } from "./ratelimit.js";
+import { allowRequest, getClientIp } from "./ratelimit.js";
 import { buildReceipt } from "../narrate/receipt.js";
 import { randomBytes } from "node:crypto";
 import {
@@ -299,7 +299,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && url.pathname === "/api/parse") {
-    const clientKey = req.socket.remoteAddress ?? "unknown";
+    const clientKey = getClientIp(req);
     if (!allowRequest(`parse:${clientKey}`)) {
       send(res, 429, { error: "Too many requests. Slow down." });
       return;
@@ -482,7 +482,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && url.pathname === "/api/session") {
-    const clientKey = req.socket.remoteAddress ?? "unknown";
+    const clientKey = getClientIp(req);
     if (!allowRequest(`session:${clientKey}`)) {
       send(res, 429, { error: "Too many sessions from this address. Slow down." });
       return;
@@ -657,6 +657,11 @@ const server = createServer(async (req, res) => {
   if (req.method === "POST" && url.pathname === "/api/webhook/razorpay") {
     const { handleWebhook } = await import("../payments/webhook.js");
     await handleWebhook(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/health") {
+    send(res, 200, { status: "ok", timestamp: new Date().toISOString() });
     return;
   }
 

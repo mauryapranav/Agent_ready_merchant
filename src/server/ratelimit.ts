@@ -7,6 +7,14 @@ export interface RateLimitConfig {
 
 export const DEFAULT_RATE_LIMIT: RateLimitConfig = { capacity: 10, refillPerMinute: 60 };
 
+export function getClientIp(req: import("node:http").IncomingMessage): string {
+  const forwarded = req.headers["x-forwarded-for"];
+  if (forwarded) {
+    return (Array.isArray(forwarded) ? forwarded[0] : forwarded.split(",")[0]).trim();
+  }
+  return req.socket.remoteAddress ?? "unknown";
+}
+
 export function allowRequest(key: string, config: RateLimitConfig = DEFAULT_RATE_LIMIT): boolean {
   const now = Date.now();
   const bucket = buckets.get(key) ?? { tokens: config.capacity, lastRefill: now };
