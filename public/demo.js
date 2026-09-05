@@ -138,9 +138,27 @@ const shortOutcome = (o) => ({ PAID: "rescued", DIRECT_PAID: "paid", ABORTED: "n
 
 /* ---------- driving the real API ---------- */
 
+/* Read a JSON response without assuming there is one. An empty or HTML body — a crashed
+ * worker, a proxy error page — otherwise surfaces as "Unexpected end of JSON input", which
+ * says nothing about what actually went wrong. */
+async function readJson(res, label) {
+  const text = await res.text();
+  if (!text.trim()) {
+    throw new Error(`${label}: server returned an empty body (HTTP ${res.status})` +
+      (res.status >= 500 ? " — the request failed server-side; check the service logs" : ""));
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`${label}: HTTP ${res.status}, response was not JSON — ` +
+      text.replace(/<[^>]*>/g, " ").replace(/s+/g, " ").trim().slice(0, 160));
+  }
+}
+
 async function csrf() {
   const r = await fetch("/api/csrf-token");
-  return (await r.json()).csrfToken;
+  const data = await readJson(r, "csrf-token");
+  return data.csrfToken;
 }
 
 async function runBuyer(b) {
@@ -152,8 +170,11 @@ async function runBuyer(b) {
         userId: b.userId, csrfToken: token }),
     });
     if (res.status === 429) { await sleep(1500); continue; }   // token bucket refills at 1/s
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+    const data = await readJson(res, b.name);
+    if (!res.ok) {
+      const detail = [data.error, data.detail].filter(Boolean).join(" — ");
+      throw new Error(detail || ("HTTP " + res.status));
+    }
     return data;
   }
   throw new Error("rate limited — wait a moment and run again");

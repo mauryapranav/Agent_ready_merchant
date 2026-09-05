@@ -305,7 +305,10 @@ function sendError(res: import("node:http").ServerResponse, status: number, erro
   send(res, status, { error: "Validation failed", details: errors });
 }
 
-const server = createServer(async (req, res) => {
+async function handleRequest(
+  req: import("node:http").IncomingMessage,
+  res: import("node:http").ServerResponse
+): Promise<void> {
   const url = new URL(req.url ?? "/", `http://localhost:${PORT}`);
 
   if (req.method === "OPTIONS") {
@@ -756,6 +759,37 @@ const server = createServer(async (req, res) => {
   }
 
   send(res, 404, { error: "Not found" });
+}
+
+/**
+ * A throw anywhere in the handler used to become an unhandled rejection, which terminates the
+ * Node process — so one failing request returned an empty body and 502'd the service for
+ * everyone. Answer 500 with the reason instead, and keep serving.
+ */
+const server = createServer((req, res) => {
+  handleRequest(req, res).catch((err: unknown) => {
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("[api] unhandled error on", req.method, req.url, "-", detail, err);
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    res.writeHead(500, {
+      "content-type": "application/json",
+      "access-control-allow-origin": ALLOWED_ORIGIN,
+      "access-control-allow-credentials": "true",
+    });
+    res.end(JSON.stringify({ error: "Internal error", detail }));
+  });
+});
+
+// Last resort: a bug elsewhere must not take the service down mid-demo. These log loudly
+// rather than swallowing quietly, so failures stay diagnosable in the Render logs.
+process.on("unhandledRejection", (reason) => {
+  console.error("[api] unhandledRejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[api] uncaughtException:", err);
 });
 
 await initializeData();
