@@ -202,7 +202,7 @@ export async function persistSession(params: {
                            hard_cap_paise, flex_rule, attachment_criteria, allowed_rails, policy_snapshot,
                            status, outcome, final_total_paise, paid_via, razorpay_order_id, offer_snapshot,
                            buyer_ledger, merchant_ledger, tip_signatures)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
      ON CONFLICT (session_id) DO UPDATE SET
        status = EXCLUDED.status,
        outcome = EXCLUDED.outcome,
