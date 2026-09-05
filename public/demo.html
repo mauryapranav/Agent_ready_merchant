@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Settle — Agent-Ready Merchant Checkout</title>
 <style>
   :root{
@@ -24,10 +25,13 @@
     --m-campaign:#3987e5; --m-rail:#d95926; --m-swap:#199e70; --m-cut:#c98500;
     --track:#2E2820;
   }
+  [data-theme="dark"] nav.top{background:rgba(20,17,14,0.92);background:color-mix(in srgb,var(--paper) 92%,transparent)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth;scroll-snap-type:y proximity}
   body{margin:0;background:var(--paper);color:var(--ink);
     font:15px/1.62 ui-serif,Georgia,"Iowan Old Style",serif;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 1px 1px,
+      rgba(26,23,20,0.05) 1px,transparent 0);
     background-image:radial-gradient(circle at 1px 1px,
       color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 0);
     background-size:22px 22px}
@@ -52,14 +56,16 @@
     border-bottom:2px solid var(--accent);display:inline-block}
   .marker .lb{font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:11px;
     text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin-top:5px;line-height:1.45}
-  h2.hd{font-family:ui-serif,Georgia,serif;font-size:clamp(25px,3.3vw,36px);line-height:1.16;
+  h2.hd{font-family:ui-serif,Georgia,serif;font-size:30px;font-size:clamp(25px,3.3vw,36px);line-height:1.16;
     letter-spacing:-.02em;margin:0 0 12px;font-weight:600;max-width:19ch}
   h2.hd em{font-style:normal;color:var(--accent)}
   .lede{color:var(--ink-2);font-size:15.5px;max-width:58ch;margin:0 0 8px}
 
   /* ---- top bar ---- */
-  nav.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--paper) 92%,transparent);
-    backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+  nav.top{position:sticky;top:0;z-index:40;
+    background:rgba(251,249,244,0.92);
+    background:color-mix(in srgb,var(--paper) 92%,transparent);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
   .nav-in{max-width:1180px;margin:0 auto;padding:10px 26px;display:flex;align-items:center;gap:22px}
   .brand{font-family:ui-serif,Georgia,serif;font-weight:600;font-size:17px;text-decoration:none;
     letter-spacing:-.02em;white-space:nowrap}
@@ -74,25 +80,15 @@
   .btn:hover{filter:brightness(1.07)}
   .btn.line{background:transparent;color:var(--ink);border:1px solid var(--rule-hard)}
   .btn.line:hover{border-color:var(--accent);color:var(--accent);filter:none}
-  .btn:disabled{opacity:.4;cursor:not-allowed;animation:none;box-shadow:none}
-  /* The run is the point of the page: the primary CTA breathes until it is used. */
-  .btn.glow{position:relative;box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent);
-    animation:pulse 2.6s ease-out infinite}
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}
-    70%{box-shadow:0 0 0 12px color-mix(in srgb,var(--accent) 0%,transparent)}
-    100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent)}}
-  @media(prefers-reduced-motion:reduce){.btn.glow{animation:none;
-    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 26%,transparent)}}
-  .nav-cta{display:flex;align-items:center;gap:10px;padding-left:18px;margin-left:4px;
-    border-left:1px solid var(--rule)}
-  .nav-cta .btn{padding:10px 18px;font-size:13px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
   .icon-btn{background:transparent;border:1px solid var(--rule-hard);color:var(--ink);
     width:31px;height:31px;display:grid;place-items:center;border-radius:3px}
   .speed{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;white-space:nowrap}
 
   /* ---- hero: asymmetric split, left-aligned ---- */
   .hero{border-bottom:1px solid var(--rule);background:
+    linear-gradient(180deg,#fbf5f0 0%,var(--paper) 70%);
+    background:
     linear-gradient(180deg,color-mix(in srgb,var(--accent) 4%,var(--paper)) 0%,var(--paper) 70%)}
   .hero{scroll-snap-align:start;min-height:calc(100vh - 52px);display:flex;
     flex-direction:column;justify-content:center}
@@ -102,7 +98,7 @@
   .kicker{font-family:-apple-system,sans-serif;font-size:11px;text-transform:uppercase;
     letter-spacing:.13em;color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:18px}
   .kicker::after{content:"";flex:1;height:1px;background:var(--rule)}
-  h1{font-family:ui-serif,Georgia,serif;font-size:clamp(33px,5vw,54px);line-height:1.06;
+  h1{font-family:ui-serif,Georgia,serif;font-size:42px;font-size:clamp(33px,5vw,54px);line-height:1.06;
     letter-spacing:-.028em;margin:0 0 20px;font-weight:600}
   h1 em{font-style:italic;color:var(--accent)}
   .hero p{color:var(--ink-2);font-size:16px;max-width:50ch;margin:0 0 26px}
@@ -188,7 +184,8 @@
     padding:13px 4px;border-bottom:1px solid var(--rule);align-items:center}
   .cmp .hrow{font-family:-apple-system,sans-serif;font-size:10.5px;text-transform:uppercase;
     letter-spacing:.09em;color:var(--muted);border-bottom-color:var(--rule-hard)}
-  .cmp .drow.win{background:color-mix(in srgb,var(--accent) 6%,transparent);
+  .cmp .drow.win{background:rgba(180,83,31,0.06);
+    background:color-mix(in srgb,var(--accent) 6%,transparent);
     box-shadow:inset 2px 0 0 var(--accent)}
   .cmp .nm{font-size:14.5px;font-weight:600}
   .cmp .nm small{display:block;font-family:-apple-system,sans-serif;font-size:11.5px;
@@ -270,7 +267,8 @@
     background:linear-gradient(180deg,var(--sunk),var(--card))}
   .advance .lead{font-family:-apple-system,sans-serif;font-size:11px;color:var(--muted);
     text-transform:uppercase;letter-spacing:.09em;margin-right:2px}
-  .advance .btn{box-shadow:0 2px 0 color-mix(in srgb,var(--accent) 55%,#000)}
+  .advance .btn{box-shadow:0 2px 0 rgba(99,46,17,1);
+    box-shadow:0 2px 0 color-mix(in srgb,var(--accent) 55%,#000)}
   .advance .btn.line{box-shadow:none}
   .buyer-head{display:flex;gap:13px;align-items:flex-start;padding-bottom:13px;
     border-bottom:1px solid var(--rule);margin-bottom:13px}
@@ -283,8 +281,10 @@
     font-size:11px;font-weight:600;background:var(--sunk);color:var(--muted);
     border:1px solid var(--rule);font-family:-apple-system,sans-serif}
   .chip i{width:6px;height:6px;border-radius:50%;display:inline-block}
-  .chip.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 35%,var(--rule))} .chip.ok i{background:var(--ok)}
-  .chip.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--rule))} .chip.bad i{background:var(--bad)}
+  .chip.ok{color:var(--ok);border-color:rgba(47,107,60,0.35);
+    border-color:color-mix(in srgb,var(--ok) 35%,var(--rule))} .chip.ok i{background:var(--ok)}
+  .chip.bad{color:var(--bad);border-color:rgba(158,43,37,0.35);
+    border-color:color-mix(in srgb,var(--bad) 35%,var(--rule))} .chip.bad i{background:var(--bad)}
   .chip.warn{color:var(--warn)} .chip.warn i{background:var(--warn)}
   .beat{display:flex;gap:12px;padding:8px 0;opacity:0;transform:translateY(4px);
     animation:rise .3s ease forwards;border-bottom:1px solid var(--rule)}
@@ -302,8 +302,10 @@
   .beat.money .pip{background:var(--accent)}
   .verdict{display:inline-block;padding:1px 6px;border-radius:2px;font-size:10px;font-weight:700;
     margin-left:6px;font-family:ui-monospace,monospace;border:1px solid}
-  .verdict.PASS{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--rule))}
-  .verdict.REJECT{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
+  .verdict.PASS{color:var(--ok);border-color:rgba(47,107,60,0.4);
+    border-color:color-mix(in srgb,var(--ok) 40%,var(--rule))}
+  .verdict.REJECT{color:var(--bad);border-color:rgba(158,43,37,0.4);
+    border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
   .outcome{margin-top:15px;padding:13px 15px;border:1px solid var(--rule-hard);border-radius:3px;
     display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--sunk)}
   .outcome .ot{font-family:-apple-system,sans-serif;font-weight:700;font-size:14px}
@@ -379,47 +381,12 @@
   @media(max-width:760px){.two{grid-template-columns:1fr;gap:22px}}
   .hidden{display:none !important}
 
-  /* ---- transaction history ---- */
-  .hist{border-top:1px solid var(--rule-hard);margin-top:18px;max-height:52vh;overflow:auto}
-  .hist table{width:100%;border-collapse:collapse;font-size:12.5px}
-  .hist thead th{position:sticky;top:0;background:var(--sunk);text-align:left;
-    font-family:-apple-system,sans-serif;font-size:10px;text-transform:uppercase;
-    letter-spacing:.08em;color:var(--muted);font-weight:600;padding:9px 10px;
-    border-bottom:1px solid var(--rule-hard);z-index:1}
-  .hist td{padding:9px 10px;border-bottom:1px solid var(--rule);
-    font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .hist td.wide{font-family:-apple-system,sans-serif;white-space:normal;min-width:150px}
-  .hist tbody tr:hover{background:var(--sunk)}
-  .hist .pillo{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:2px;
-    font-family:-apple-system,sans-serif;font-size:10.5px;font-weight:700;border:1px solid}
-  .hist .pillo i{width:6px;height:6px;border-radius:50%}
-  .hist .PAID,.hist .DIRECT_PAID{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--rule))}
-  .hist .PAID i,.hist .DIRECT_PAID i{background:var(--ok)}
-  .hist .ABORTED{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
-  .hist .ABORTED i{background:var(--bad)}
-  .hist .PAUSED_FOR_HUMAN{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--rule))}
-  .hist .PAUSED_FOR_HUMAN i{background:var(--warn)}
-  .hist .mech{display:inline-flex;align-items:center;gap:6px}
-  .hist .mech .sq{width:8px;height:8px;border-radius:1px}
-  .hist-sum{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule-hard);
-    border-radius:4px;background:var(--card);overflow:hidden;margin-top:16px}
-  @media(max-width:760px){.hist-sum{grid-template-columns:repeat(2,1fr)}}
-  .hist-sum > div{padding:13px 16px;border-right:1px solid var(--rule)}
-  .hist-sum > div:last-child{border-right:0}
-  .hist-sum .k{font-family:-apple-system,sans-serif;font-size:10.5px;color:var(--muted);
-    text-transform:uppercase;letter-spacing:.07em}
-  .hist-sum .v{font-family:ui-monospace,monospace;font-size:18px;font-weight:600;margin-top:3px}
-  /* Beat replay reused inside the try-it panel */
-  .try-beats{max-height:300px;overflow:auto;border:1px solid var(--rule);border-radius:3px;
-    padding:4px 12px;margin-top:12px;background:var(--card)}
-  .try-beats:empty{display:none}
-
   /* ---- analytics: a full-screen view the run hands off to ---- */
   .analytics{display:none}
   body.analytics-open{overflow:hidden}
   body.analytics-open nav.top,body.analytics-open .hero,body.analytics-open .band,
   body.analytics-open .figs:not(.an-figs),body.analytics-open .foot{display:none}
-  body.analytics-open .analytics{display:block;position:fixed;inset:0;z-index:60;
+  body.analytics-open .analytics{display:block;position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;
     overflow-y:auto;background:var(--paper);scroll-snap-type:none}
   .an-bar #an-back{white-space:nowrap;flex-shrink:0}
   .an-bar{position:sticky;top:0;z-index:2;background:var(--paper);
@@ -450,6 +417,18 @@
     justify-content:space-between;align-items:center;gap:26px;flex-wrap:wrap}
   .foot h2{font-family:ui-serif,Georgia,serif;font-size:26px;margin:0;letter-spacing:-.02em;font-weight:600}
   .foot h2 em{font-style:italic;color:var(--accent)}
+/* Focus-visible accessibility */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+button:focus-visible,.btn:focus-visible{outline-offset:3px}
+/* Selection branding */
+::selection{background:rgba(180,83,31,0.2);color:var(--ink)}
+[data-theme="dark"] ::selection{background:rgba(224,123,60,0.25)}
+/* Button press depth */
+button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px)}
+/* Print */
+@media print{nav.top,.advance,.speed,.icon-btn{display:none!important}
+  .band{min-height:auto!important;break-inside:avoid}
+  body{background:white!important;background-image:none!important}}
 </style>
 </head>
 <body>
@@ -461,14 +440,11 @@
       <a href="#problem">Problem</a><a href="#waterfall">Waterfall</a><a href="#live">Live run</a>
       <a href="#refusal">Refusal</a><a href="#evidence">Evidence</a><a href="#governance">Governance</a>
       <a href="#try">Try it</a><a href="#console">Console</a>
-      <a href="#history">History</a>
       <a href="#" id="open-analytics" style="color:var(--accent)">Analytics</a>
     </div>
-    <div class="nav-cta">
-      <span class="speed" id="speed"></span>
-      <button class="btn glow" id="run">&#9654;&nbsp; Open the store</button>
-      <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
-    </div>
+    <span class="speed" id="speed"></span>
+    <button class="btn" id="run">Open the store</button>
+    <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
   </div>
 </nav>
 
@@ -481,7 +457,7 @@
          the money. Every rupee moves through deterministic gates the agent cannot argue with —
          and the merchant spends other people's budget before its own.</p>
       <div class="cta-row">
-        <button class="btn glow" id="run-hero">&#9654;&nbsp; Watch 8 AI buyers negotiate</button>
+        <button class="btn" id="run-hero">Watch 8 AI buyers negotiate</button>
         <a class="btn line" href="#waterfall" style="text-decoration:none;display:inline-block">Read the mechanism</a>
       </div>
     </div>
@@ -691,7 +667,6 @@
         <div>
           <label class="fl">Cart</label>
           <div class="skus" id="sku-list"></div>
-          <div class="try-beats" id="try-beats"></div>
           <div id="try-result" style="margin-top:13px"></div>
         </div>
       </div>
@@ -716,19 +691,6 @@
           <div id="scn-result" style="font-size:13px;color:var(--muted)">Pick a scenario to run it.</div>
         </div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div class="band" id="history">
-  <div class="band-in">
-    <div class="marker"><div class="no">09</div><div class="lb">Transaction<br>history</div></div>
-    <div>
-      <h2 class="hd">Every session, <em>on the record.</em></h2>
-      <p class="lede">Read back from the sessions table, not from memory — so this survives a
-        restart and shows what actually committed. Refusals are kept alongside settlements.</p>
-      <div class="hist-sum" id="hist-sum"></div>
-      <div class="hist" id="hist-body"></div>
     </div>
   </div>
 </div>

@@ -3,26 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Settle — Buyer Agent</title>
 <style>
   :root{
-    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
-    --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
-    --line:#E7E5E4;
-    --input-bg:#FFFFFF;
-    --ghost-bg:#FFFFFF;
+    --paper:#FBF9F4; --card:#FFFDF8; --sunk:#F4F0E6;
+    --ink:#1A1714; --ink-2:#4A423A; --muted:#857A6D;
+    --rule:#E4DDD1; --rule-hard:#CFC5B4;
+    --accent:#B4531F; --accent-2:#2F4F4A;
+    --ok:#2F6B3C; --warn:#8A5A12; --bad:#9E2B25; --info:#2C4C7C;
+    --track:#EAE4D8;
+    --bg:var(--paper); --line:var(--rule);
+    --input-bg:var(--paper); --ghost-bg:transparent;
   }
   [data-theme="dark"]{
-    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --muted:#A8A29E;
-    --line:#44403C;
-    --input-bg:#1C1917;
-    --ghost-bg:#1C1917;
+    --paper:#14110E; --card:#1D1915; --sunk:#191612;
+    --ink:#F5F1E8; --ink-2:#D6CEC1; --muted:#9A8F80;
+    --rule:#332C24; --rule-hard:#4A4137;
+    --accent:#E07B3C; --accent-2:#6FA89E;
+    --ok:#6FBF7F; --warn:#E0A33C; --bad:#E0736B; --info:#7FA6DC;
+    --track:#2E2820;
+    --bg:var(--paper); --line:var(--rule);
+    --input-bg:var(--card); --ghost-bg:var(--card);
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 1px 1px,
+      rgba(26,23,20,0.05) 1px,transparent 0);
+    background-image:radial-gradient(circle at 1px 1px,
+      color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 0);
+    background-size:22px 22px}
   .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
-  header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;justify-content:space-between;align-items:center}
+  header{background:var(--card);border-bottom:1px solid var(--rule-hard);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;
+    box-shadow:0 2px 8px -4px rgba(0,0,0,.08)}
   .brand{font-weight:700;font-size:16px}
   .brand span{color:var(--accent)}
   header .side{font-size:12px;color:var(--muted)}
@@ -30,38 +45,37 @@
   main{max-width:860px;margin:0 auto;padding:26px 20px 60px}
   h1{font-size:19px;margin:0 0 4px}
   .page-sub{color:var(--muted);margin-bottom:20px;font-size:13px}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+  .panel{background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;padding:18px;margin-bottom:18px;
+    box-shadow:0 1px 0 var(--rule-hard),0 6px 18px -12px rgba(0,0,0,.15)}
   .panel h2{margin:0 0 4px;font-size:14px}
   .panel .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
-  textarea{width:100%;min-height:64px;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--input-bg);color:var(--ink);resize:vertical}
+  textarea{width:100%;min-height:64px;padding:10px 12px;border:1px solid var(--rule-hard);border-radius:3px;font:inherit;background:var(--paper);color:var(--ink);resize:vertical;
+    -webkit-appearance:none}
   .intent-row{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
-  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  button.ghost{background:var(--ghost-bg);color:var(--ink);border:1px solid var(--line)}
-  button.ghost:hover:not(:disabled){background:var(--line)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:3px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:13px;
+    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;transition:filter .15s,transform .1s}
+  button:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px)}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-hard)}
+  button.ghost:hover:not(:disabled){border-color:var(--accent);color:var(--accent);background:transparent}
   #mic-btn.listening{background:var(--bad)}
   .hint{color:var(--muted);font-size:11.5px;margin-top:8px}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:600;
+    background:var(--sunk);border:1px solid var(--rule)}
   .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
-  .chip.ok{background:#F0FDF4;color:var(--ok)} .chip.ok i{background:var(--ok)}
-  .chip.bad{background:#FEF2F2;color:var(--bad)} .chip.bad i{background:var(--bad)}
-  .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
-  .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
-  .chip.plain{background:#F5F5F4;color:var(--ink)}
-  [data-theme="dark"] .chip.ok{background:#064E3B;color:#6EE7B7} [data-theme="dark"] .chip.ok i{background:#6EE7B7}
-  [data-theme="dark"] .chip.bad{background:#7F1D1D;color:#FCA5A5} [data-theme="dark"] .chip.bad i{background:#FCA5A5}
-  [data-theme="dark"] .chip.warn{background:#78350F;color:#FDE047} [data-theme="dark"] .chip.warn i{background:#FDE047}
-  [data-theme="dark"] .chip.info{background:#1E3A5F;color:#93C5FD} [data-theme="dark"] .chip.info i{background:#93C5FD}
-  [data-theme="dark"] .chip.plain{background:#2A2725;color:var(--ink)}
+  .chip.ok{color:var(--ok);border-color:rgba(47,107,60,0.35)} .chip.ok i{background:var(--ok)}
+  .chip.bad{color:var(--bad);border-color:rgba(158,43,37,0.35)} .chip.bad i{background:var(--bad)}
+  .chip.warn{color:var(--warn)} .chip.warn i{background:var(--warn)}
+  .chip.info{color:var(--info)} .chip.info i{background:var(--info)}
+  .chip.plain{color:var(--ink)}
   .skus label{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
-  .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
-  .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
-  .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
-  .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
-  [data-theme="dark"] .banner.ok{background:#064E3B;color:#6EE7B7}
-  [data-theme="dark"] .banner.bad{background:#7F1D1D;color:#FCA5A5}
-  [data-theme="dark"] .banner.warn{background:#78350F;color:#FDE047}
+  .banner{padding:14px 16px;border-radius:3px;margin:14px 0;font-weight:500;display:none;
+    border:1px solid var(--rule-hard);background:var(--card)}
+  .banner.ok{display:block;color:var(--ok);box-shadow:inset 3px 0 0 var(--ok)}
+  .banner.bad{display:block;color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+  .banner.warn{display:block;color:var(--warn);box-shadow:inset 3px 0 0 var(--warn)}
   ol.timeline{list-style:none;margin:0;padding:0}
   ol.timeline li{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);align-items:baseline}
   ol.timeline li:last-child{border-bottom:0}
@@ -82,8 +96,15 @@
   .hidden{display:none}
   
   /* Auto-selected indicator */
-  .sku-auto{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:600;background:var(--accent);color:#fff}
-  [data-theme="dark"] .sku-auto{background:var(--accent);color:#fff}
+  .sku-auto{display:inline-flex;padding:0 5px;border-radius:2px;font-size:9px;font-weight:700;
+    background:var(--accent);color:#fff;margin-left:4px;font-family:ui-monospace,"JetBrains Mono",Consolas,monospace}
+  /* Focus-visible accessibility */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+  /* Selection branding */
+  ::selection{background:rgba(180,83,31,0.2);color:var(--ink)}
+  /* Print */
+  @media print{header{display:none!important}
+    body{background:white!important;background-image:none!important}}
 </style>
 </head>
 <body>

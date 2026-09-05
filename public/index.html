@@ -3,28 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Settle — Merchant Console</title>
 <style>
   :root{
-    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
-    --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
-    --line:#E7E5E4;
-    --card-hover:#F5F5F4;
-    --input-bg:#FFFFFF;
+    --paper:#FBF9F4; --card:#FFFDF8; --sunk:#F4F0E6;
+    --ink:#1A1714; --ink-2:#4A423A; --muted:#857A6D;
+    --rule:#E4DDD1; --rule-hard:#CFC5B4;
+    --accent:#B4531F; --accent-2:#2F4F4A;
+    --ok:#2F6B3C; --warn:#8A5A12; --bad:#9E2B25; --info:#2C4C7C;
+    --track:#EAE4D8;
+    /* aliases for existing class references */
+    --bg:var(--paper); --line:var(--rule);
+    --card-hover:var(--sunk); --input-bg:var(--paper);
   }
   [data-theme="dark"]{
-    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --muted:#A8A29E;
-    --line:#44403C;
-    --card-hover:#2A2725;
-    --input-bg:#1C1917;
+    --paper:#14110E; --card:#1D1915; --sunk:#191612;
+    --ink:#F5F1E8; --ink-2:#D6CEC1; --muted:#9A8F80;
+    --rule:#332C24; --rule-hard:#4A4137;
+    --accent:#E07B3C; --accent-2:#6FA89E;
+    --ok:#6FBF7F; --warn:#E0A33C; --bad:#E0736B; --info:#7FA6DC;
+    --track:#2E2820;
+    --bg:var(--paper); --line:var(--rule);
+    --card-hover:var(--sunk); --input-bg:var(--card);
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
+  body{margin:0;background:var(--paper);color:var(--ink);
     font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;
-    transition:background .2s,color .2s;}
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 1px 1px,
+      rgba(26,23,20,0.05) 1px,transparent 0);
+    background-image:radial-gradient(circle at 1px 1px,
+      color-mix(in srgb,var(--ink) 5%,transparent) 1px,transparent 0);
+    background-size:22px 22px}
   .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
   .layout{display:flex;min-height:100vh}
-  nav{width:200px;background:var(--card);border-right:1px solid var(--line);padding:20px 12px;flex-shrink:0}
+  nav{width:200px;background:var(--card);border-right:1px solid var(--rule-hard);padding:20px 12px;flex-shrink:0;
+    box-shadow:4px 0 16px -8px rgba(0,0,0,.08)}
   .brand{font-weight:700;font-size:16px;margin-bottom:4px}
   .brand span{color:var(--accent)}
   .brand-sub{color:var(--muted);font-size:11px;margin-bottom:24px}
@@ -35,45 +50,43 @@
   h1{font-size:20px;margin:0 0 4px}
   .page-sub{color:var(--muted);margin-bottom:22px}
   .cards{display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:170px;transition:transform .15s,box-shadow .15s}
-  .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+  .card{background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;padding:16px 18px;min-width:170px;transition:transform .15s,box-shadow .15s}
+  .card:hover{transform:translateY(-2px);box-shadow:0 1px 0 var(--rule-hard),0 8px 24px -8px rgba(0,0,0,.15)}
   .card .kpi{font-size:20px;font-weight:700}
   .card .lbl{color:var(--muted);font-size:12px;margin-top:2px}
-  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;overflow:hidden}
   th{position:sticky;top:0;background:var(--card-hover);text-align:left;font-size:12px;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line)}
   td{padding:10px 12px;border-bottom:1px solid var(--line)}
   tr.rowbtn:hover td{background:var(--card-hover);cursor:pointer}
   td.num{text-align:right;font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
-  .chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:2px;font-size:11px;font-weight:600;
+    background:var(--sunk);border:1px solid var(--rule)}
   .chip i{width:7px;height:7px;border-radius:50%;display:inline-block}
-  .chip.ok{background:#F0FDF4;color:var(--ok)} .chip.ok i{background:var(--ok)}
-  .chip.bad{background:#FEF2F2;color:var(--bad)} .chip.bad i{background:var(--bad)}
-  .chip.warn{background:#FFFBEB;color:var(--warn)} .chip.warn i{background:var(--warn)}
-  .chip.info{background:#EFF6FF;color:var(--info)} .chip.info i{background:var(--info)}
-  [data-theme="dark"] .chip.ok{background:#064E3B;color:#6EE7B7} [data-theme="dark"] .chip.ok i{background:#6EE7B7}
-  [data-theme="dark"] .chip.bad{background:#7F1D1D;color:#FCA5A5} [data-theme="dark"] .chip.bad i{background:#FCA5A5}
-  [data-theme="dark"] .chip.warn{background:#78350F;color:#FDE047} [data-theme="dark"] .chip.warn i{background:#FDE047}
-  [data-theme="dark"] .chip.info{background:#1E3A5F;color:#93C5FD} [data-theme="dark"] .chip.info i{background:#93C5FD}
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:20px}
+  .chip.ok{color:var(--ok);border-color:rgba(47,107,60,0.35)} .chip.ok i{background:var(--ok)}
+  .chip.bad{color:var(--bad);border-color:rgba(158,43,37,0.35)} .chip.bad i{background:var(--bad)}
+  .chip.warn{color:var(--warn)} .chip.warn i{background:var(--warn)}
+  .chip.info{color:var(--info)} .chip.info i{background:var(--info)}
+  .panel{background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;padding:20px;margin-bottom:20px;
+    box-shadow:0 1px 0 var(--rule-hard),0 6px 18px -12px rgba(0,0,0,.15)}
   label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
-  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--input-bg);color:var(--ink);transition:border .15s}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--rule-hard);border-radius:3px;font:inherit;background:var(--paper);color:var(--ink);transition:border .15s}
   input[type=text]:focus,input[type=number]:focus,select:focus{outline:none;border-color:var(--accent)}
-  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s}
-  button:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:3px;padding:10px 18px;font-weight:600;cursor:pointer;
+    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;transition:filter .15s,transform .1s}
+  button:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px)}
+  button:active:not(:disabled){transform:translateY(1px)}
   button:disabled{opacity:.5;cursor:not-allowed}
-  button.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
-  button.ghost:hover:not(:disabled){background:var(--card-hover)}
+  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-hard)}
+  button.ghost:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
   .grid2{display:grid;grid-template-columns:1fr 320px;gap:20px}
   .skus label{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--ink);font-size:13px;text-transform:none}
-  .banner{padding:14px 16px;border-radius:8px;margin:14px 0;font-weight:500;display:none}
-  .banner.ok{background:#F0FDF4;color:var(--ok);display:block}
-  .banner.bad{background:#FEF2F2;color:var(--bad);display:block}
-  .banner.warn{background:#FFFBEB;color:var(--warn);display:block}
-  [data-theme="dark"] .banner.ok{background:#064E3B;color:#6EE7B7}
-  [data-theme="dark"] .banner.bad{background:#7F1D1D;color:#FCA5A5}
-  [data-theme="dark"] .banner.warn{background:#78350F;color:#FDE047}
+  .banner{padding:14px 16px;border-radius:3px;margin:14px 0;font-weight:500;display:none;
+    border:1px solid var(--rule-hard);background:var(--card)}
+  .banner.ok{display:block;color:var(--ok);box-shadow:inset 3px 0 0 var(--ok)}
+  .banner.bad{display:block;color:var(--bad);box-shadow:inset 3px 0 0 var(--bad)}
+  .banner.warn{display:block;color:var(--warn);box-shadow:inset 3px 0 0 var(--warn)}
   .trace{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
-  .tcol{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .tcol{background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;padding:14px}
   .tcol h3{margin:0 0 10px;font-size:13px}
   .tev{display:flex;gap:10px;margin-bottom:8px;align-items:baseline}
   .tev i{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
@@ -113,6 +126,16 @@
   .sim-dot.bad{background:var(--bad)}
   .sim-dot.running{background:var(--accent);animation:pulse 1s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  /* Focus-visible accessibility */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+  /* Selection branding */
+  ::selection{background:rgba(180,83,31,0.2);color:var(--ink)}
+  /* Print */
+  @media print{nav,.layout nav{display:none!important}
+    .layout{display:block!important}
+    body{background:white!important;background-image:none!important}}
+  /* Responsive grid2 */
+  @media(max-width:768px){.grid2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -543,7 +566,9 @@ function drawTrendChart(days, stats) {
       ctx.arc(x(i), y(v), 4, 0, Math.PI * 2);
       ctx.fillStyle = ds.color;
       ctx.fill();
-      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(x(i), y(v), 2, 0, Math.PI * 2);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--card").trim() || "#fff";
       ctx.fill();
     });
   }

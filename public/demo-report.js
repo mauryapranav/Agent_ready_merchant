@@ -317,6 +317,7 @@ function wireTips(view) {
       tip.textContent = el.dataset.tip;
       tip.style.opacity = "1";
       const r = el.getBoundingClientRect();
+      tip.style.position = "fixed";
       tip.style.left = Math.min(window.innerWidth - 270, Math.max(8, r.left)) + "px";
       tip.style.top = Math.max(8, r.top - 36) + "px";
     };

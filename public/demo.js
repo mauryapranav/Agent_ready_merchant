@@ -313,25 +313,11 @@ function buildBeats(buyer, data) {
   return beats;
 }
 
-/* The try-it panel replays a hand-written mandate through the same beat builder, so a judge's
- * own instruction produces the identical trace the scripted buyers do. */
-window.renderSessionBeats = async function (buyer, data, host, pace = 360) {
-  host.innerHTML = "";
-  for (const b of buildBeats(buyer, data)) {
-    const div = document.createElement("div");
-    div.className = "beat " + b.cls;
-    div.innerHTML = `<div class="gut"><span class="pip"></span><span class="ln"></span></div>
-      <div class="body"><div class="ttl">${b.ttl}</div><div class="dsc">${b.dsc}</div></div>`;
-    host.appendChild(div);
-    host.scrollTop = host.scrollHeight;
-    await sleep(pace);
-  }
-};
-
 /* ---------- replay ---------- */
 
 function renderBuyerHead(buyer, data) {
-  document.getElementById("advance-slot")?.replaceChildren();
+  const _as = document.getElementById("advance-slot");
+  if (_as) _as.innerHTML = "";
   $("#focus").scrollTop = 0;
   const product = state.bySku[buyer.sku];
   const chips = [`<span class="chip">Cap ${rs(data.capPaise)}</span>`];
@@ -421,11 +407,12 @@ function waitForAdvance(index) {
       <button class="btn" id="next-buyer">Next: ${esc(ROSTER[index + 1].name)} &rarr;</button>
       <button class="btn line" id="play-rest">Play remaining ${remaining}</button>
       <span class="adv-hint"><kbd>Space</kbd> to advance</span>`;
-    slot.replaceChildren(host);
+    slot.innerHTML = "";
+    slot.appendChild(host);
 
     const done = (auto) => {
       document.removeEventListener("keydown", onKey);
-      slot.replaceChildren();
+      slot.innerHTML = "";
       state.autoRun = auto;
       resolve();
     };
@@ -442,7 +429,7 @@ function waitForAdvance(index) {
 async function run() {
   for (const id of ["run", "run-hero", "run-foot"]) {
     const el = document.getElementById(id);
-    if (el) { el.disabled = true; el.classList.remove("glow"); }
+    if (el) el.disabled = true;
   }
   $("#idle")?.remove();
   state.results = [];
@@ -492,7 +479,6 @@ async function run() {
 
 function showReport() {
   window.__settleState = state;
-  window.refreshHistory?.();
   if (window.renderReport) window.renderReport(state);
 }
 
