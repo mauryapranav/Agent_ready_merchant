@@ -402,9 +402,10 @@ function waitForAdvance(index) {
     const host = document.createElement("div");
     host.className = "advance";
     host.innerHTML = `
-      <button id="next-buyer">Next buyer &rarr; ${esc(ROSTER[index + 1].name)}</button>
-      <button class="ghost" id="play-rest">Play the remaining ${remaining} without stopping</button>
-      <span class="adv-hint">or press <kbd>Space</kbd></span>`;
+      <span class="lead">Paused &middot; buyer ${index + 1} of ${ROSTER.length}</span>
+      <button class="btn" id="next-buyer">Next: ${esc(ROSTER[index + 1].name)} &rarr;</button>
+      <button class="btn line" id="play-rest">Play remaining ${remaining}</button>
+      <span class="adv-hint"><kbd>Space</kbd> to advance</span>`;
     slot.replaceChildren(host);
 
     const done = (auto) => {
@@ -475,6 +476,7 @@ async function run() {
 /* ---------- report ---------- */
 
 function showReport() {
+  window.__settleState = state;
   if (window.renderReport) window.renderReport(state);
 }
 
@@ -492,4 +494,5 @@ $("#theme").addEventListener("click", () => {
 if (window.matchMedia("(prefers-color-scheme: dark)").matches)
   document.documentElement.setAttribute("data-theme", "dark");
 
+window.__settleState = state;
 boot();

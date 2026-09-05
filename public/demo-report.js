@@ -35,6 +35,7 @@ function perBuyer(state) {
       title: product?.title || b.sku || "—",
       listPaise: product?.pricePaise || 0,
       revenue, cost, attached,
+      unitCost: product?.costPaise || 0,
       profit: closed ? revenue - cost : 0,
       ownCost: ledgered,
       step: offer?.mechanism?.step || null,
@@ -69,6 +70,31 @@ function table(headers, rows) {
   </table></details>`;
 }
 
+/* What the SAME eight buyers would have produced under the two naive policies. The buyer-gate
+ * approximation is deliberate and stated in the UI: it compares against the hard cap only and
+ * ignores the stretch rule, so it slightly flatters the blanket-discount arm. */
+function counterfactual(rows, capsBySession) {
+  const out = { none: { closed: 0, revenue: 0, profit: 0, own: 0 },
+                flat: { closed: 0, revenue: 0, profit: 0, own: 0 },
+                actual: { closed: 0, revenue: 0, profit: 0, own: 0 } };
+  for (const r of rows) {
+    const list = r.listPaise, cost = r.cost || r.unitCost || 0, cap = capsBySession[r.name] ?? 0;
+    if (list && list <= cap) {
+      out.none.closed++; out.none.revenue += list; out.none.profit += list - r.unitCost;
+    }
+    const flat = Math.round(list * 0.9);
+    if (list && flat <= cap) {
+      out.flat.closed++; out.flat.revenue += flat; out.flat.profit += flat - r.unitCost;
+      out.flat.own += list - flat;
+    }
+    if (r.closed) {
+      out.actual.closed++; out.actual.revenue += r.revenue; out.actual.profit += r.profit;
+    }
+    out.actual.own += r.ownCost;
+  }
+  return out;
+}
+
 function panel(title, sub, body) {
   return `<div class="an-card"><h3>${esc2(title)}</h3>
     <p class="sub">${esc2(sub)}</p>${body}</div>`;
@@ -76,6 +102,12 @@ function panel(title, sub, body) {
 
 window.renderReport = function renderReport(state) {
   const rows = perBuyer(state);
+  const capsBySession = {};
+  for (const r of state.results.filter(Boolean)) {
+    capsBySession[(r._buyer && r._buyer.name) || r.sessionId] = r.capPaise || 0;
+  }
+  const cf = counterfactual(rows, capsBySession);
+  const merchantPaid = rows.filter((r) => r.ownCost > 0);
   const closed = rows.filter((r) => r.closed);
   const rescued = rows.filter((r) => r.outcome === "PAID");
   const revenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -155,6 +187,35 @@ window.renderReport = function renderReport(state) {
   }
 
   const view = document.getElementById("analytics");
+
+  // Reachable before any run: show the precalculated simulation on its own rather than a
+  // page full of zeroes.
+  if (!rows.length) {
+    view.innerHTML = `
+      <div class="an-bar">
+        <div>
+          <div class="kicker" style="margin-bottom:6px">Precalculated &middot; seeded simulation</div>
+          <h2 class="hd" style="margin:0">The evidence, <em>before you run it.</em></h2>
+        </div>
+        <button class="btn line" id="an-back">&larr; Back to the page</button>
+      </div>
+      <div class="an-body">
+        <p class="sub" style="margin-bottom:18px">No live session has run yet. These are the
+          seeded 120-buyer figures, reproducible with <code>npm run metrics</code>. Run the eight
+          live buyers to see this cohort's own economics alongside them.</p>
+        ${popHtml}
+      </div>
+      <div id="tip" class="tip"></div>`;
+    document.body.classList.add("analytics-open");
+    view.scrollTop = 0;
+    document.getElementById("an-back").addEventListener("click", () => {
+      document.body.classList.remove("analytics-open");
+      view.innerHTML = "";
+    });
+    wireTips(view);
+    return;
+  }
+
   view.innerHTML = `
     <div class="an-bar">
       <div>
@@ -202,6 +263,34 @@ window.renderReport = function renderReport(state) {
           state.results.filter((r) => r && r.verified).length}/${rows.length}</span></div>
       </div>
 
+      <div class="an-grid2">
+        ${panel("What the same eight buyers would have earned",
+          "Counterfactual on this exact cohort. Compares list price against each buyer's hard cap; the stretch rule is ignored, which flatters the blanket arm.",
+          barChart([
+            { label: "No rescue", value: cf.none.profit, display: money(cf.none.profit), css: "--m-rail",
+              tip: `No rescue: ${cf.none.closed} of ${rows.length} close, ${money(cf.none.profit)} gross profit, ₹0 own money.` },
+            { label: "Blanket 10% off", value: cf.flat.profit, display: money(cf.flat.profit), css: "--m-cut",
+              tip: `Blanket 10%: ${cf.flat.closed} close, ${money(cf.flat.profit)} gross profit, ${money(cf.flat.own)} out of merchant margin.` },
+            { label: "Settle (actual)", value: cf.actual.profit, display: money(cf.actual.profit), css: "--m-swap",
+              tip: `Settle: ${cf.actual.closed} close, ${money(cf.actual.profit)} gross profit, ${money(cf.actual.own)} out of merchant margin.` },
+          ]) + table(["Policy", "Closed", "Revenue", "Own money", "Gross profit"], [
+            ["No rescue", cf.none.closed + "/" + rows.length, money(cf.none.revenue), "₹0", money(cf.none.profit)],
+            ["Blanket 10% off", cf.flat.closed + "/" + rows.length, money(cf.flat.revenue), money(cf.flat.own), money(cf.flat.profit)],
+            ["Settle (actual)", cf.actual.closed + "/" + rows.length, money(cf.actual.revenue), money(cf.actual.own), money(cf.actual.profit)],
+          ]))}
+        ${panel("When the merchant does pay",
+          "The last waterfall step spends real margin. These are the only sessions in this run that did.",
+          (merchantPaid.length
+            ? barChart(merchantPaid.map((r) => ({ label: r.name, value: r.ownCost, display: money(r.ownCost),
+                css: "--m-cut",
+                tip: `${r.name}: ${money(r.ownCost)} of merchant margin, charged against the daily release budget. Sale closed at ${money(r.revenue)} on ${money(r.unitCost)} of cost.` })))
+              + `<div class="an-note" style="margin-top:12px;grid-template-columns:repeat(2,1fr)">
+                  <div><span class="k">Sessions that cost the merchant</span><span class="v">${merchantPaid.length} of ${rows.length}</span></div>
+                  <div><span class="k">Average when it does</span><span class="v">${money(ownCost / merchantPaid.length)}</span></div>
+                </div>`
+            : `<p class="sub">No session in this run required merchant money — every rescue was funded externally or was margin-neutral.</p>`))}
+      </div>
+
       <h2 class="hd" style="margin:36px 0 4px">At population scale</h2>
       <p class="sub" style="margin-bottom:16px">A separate seeded simulation — not the ${rows.length} sessions above.</p>
       ${popHtml}
@@ -217,7 +306,12 @@ window.renderReport = function renderReport(state) {
     document.getElementById("live")?.scrollIntoView({ block: "start" });
   });
 
+  wireTips(view);
+};
+
+function wireTips(view) {
   const tip = view.querySelector("#tip");
+  if (!tip) return;
   view.querySelectorAll("[data-tip]").forEach((el) => {
     const show = () => {
       tip.textContent = el.dataset.tip;
@@ -231,4 +325,4 @@ window.renderReport = function renderReport(state) {
     el.addEventListener("mouseleave", () => (tip.style.opacity = "0"));
     el.addEventListener("blur", () => (tip.style.opacity = "0"));
   });
-};
+}

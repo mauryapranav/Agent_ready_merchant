@@ -74,38 +74,26 @@ function heroFigures() {
   }
 }
 
-/* ---------------- waterfall: vertical rail beside a detail panel ---------------- */
+/* ---------------- waterfall: all four stages side by side ---------------- */
 
-function renderPipeline(active = 0) {
-  q("#pipe-rail").innerHTML = STAGES.map((s, i) => `
-    <button role="tab" aria-selected="${i === active}" data-i="${i}">
-      <span class="ix">0${i + 1}</span>
-      <span class="sq" style="background:var(${s.css})"></span>
-      <span class="nm">${escH(s.label)}</span>
-      <span class="cost">${escH(s.short)}</span>
-    </button>`).join("");
-
-  const s = STAGES[active];
-  q("#pipe-body").innerHTML = `
-    <h3>${escH(s.label)}</h3>
-    <div class="who">${escH(s.who)}</div>
-    <p>${s.blurb}</p>
-    <div class="ledger">
-      <div class="ledger-hd"><span>Stage ${active + 1} of ${STAGES.length}</span>
-        <span>${s.cost === 0 ? "externally funded" : s.cost === 100 ? "merchant funded" : "margin neutral"}</span></div>
-      ${s.kv.map(([k, v]) => `<div class="lrow"><span class="k">${escH(k)}</span>
-        <span class="v">${escH(v)}</span></div>`).join("")}
-      <div class="lrow"><span class="k">Share out of merchant margin</span>
-        <span class="v" style="flex:1;max-width:120px">
-          <span class="track" style="display:block"><span class="fill"
-            style="display:block;width:${Math.max(3, s.cost)}%;background:var(${s.css})"></span></span>
-        </span></div>
-    </div>`;
-
-  q("#pipe-rail").querySelectorAll("button").forEach((el) =>
-    el.addEventListener("click", () => renderPipeline(Number(el.dataset.i))));
+/* Rendered as parallel columns rather than a tab strip: the order IS the argument, so every
+ * stage and its merchant cost has to be readable at once, without a click. */
+function renderPipeline() {
+  document.getElementById("pipe-grid").innerHTML = STAGES.map((s, i) => `
+    <div class="wf-col" style="--stage:var(${s.css})">
+      <div class="top">
+        <div class="ix"><span class="sq"></span>STAGE 0${i + 1}</div>
+        <h3>${escH(s.label)}</h3>
+        <div class="who">${escH(s.who)}</div>
+      </div>
+      <p>${s.blurb}</p>
+      <div class="costbar"><i style="width:${Math.max(3, s.cost)}%"></i></div>
+      <div class="kvs">
+        ${s.kv.map(([k, v]) => `<div class="kv"><span>${escH(k)}</span>
+          <span>${escH(v)}</span></div>`).join("")}
+      </div>
+    </div>`).join("");
 }
-
 /* ---------------- arm comparison as ledger rows ---------------- */
 
 const ARMS = {
@@ -328,7 +316,7 @@ async function runScenario(i, el) {
 
 heroFigures();
 heroLedger();
-renderPipeline(0);
+renderPipeline();
 renderArms();
 renderScenarios();
 loadCatalogInto().catch(() => {
@@ -336,3 +324,10 @@ loadCatalogInto().catch(() => {
 });
 q("#try-parse")?.addEventListener("click", tryParse);
 q("#try-run")?.addEventListener("click", tryRun);
+
+/* The analytics view is also reachable before any run: with no live sessions it shows the
+ * precalculated 120-buyer simulation on its own, so the numbers are there from a cold start. */
+document.getElementById("open-analytics")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  if (window.renderReport) window.renderReport(window.__settleState || { results: [], bySku: {} });
+});
