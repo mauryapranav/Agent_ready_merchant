@@ -316,6 +316,8 @@ function buildBeats(buyer, data) {
 /* ---------- replay ---------- */
 
 function renderBuyerHead(buyer, data) {
+  document.getElementById("advance-slot")?.replaceChildren();
+  $("#focus").scrollTop = 0;
   const product = state.bySku[buyer.sku];
   const chips = [`<span class="chip">Cap ${rs(data.capPaise)}</span>`];
   if (product) chips.push(`<span class="chip">${esc(product.title)} &middot; ${rs(product.pricePaise)}</span>`);
@@ -362,6 +364,9 @@ async function replay(buyer, data, pace) {
     div.innerHTML = `<div class="gut"><span class="pip"></span><span class="ln"></span></div>
       <div class="body"><div class="ttl">${b.ttl}</div><div class="dsc">${b.dsc}</div></div>`;
     host.appendChild(div);
+    // Scroll the frame, not the document: appending a beat must never move the page.
+    const frame = $("#focus");
+    frame.scrollTop = frame.scrollHeight;
     const stepMatch = Object.keys(MECH).find((k) => b.ttl.includes(MECH[k].label));
     if (stepMatch) highlightStep(stepMatch);
     await sleep(pace);
@@ -378,6 +383,8 @@ async function replay(buyer, data, pace) {
     <div class="final">${data.finalTotalPaise != null ? rs(data.finalTotalPaise) : "&mdash;"}</div>
   </div>`;
   // In manual mode the advance prompt provides the beat; only pause here when playing out.
+  const frame = $("#focus");
+  frame.scrollTop = frame.scrollHeight;
   await sleep(state.autoRun ? pace * 2.2 : 120);
 }
 
@@ -391,18 +398,18 @@ function paceFor() {
 function waitForAdvance(index) {
   return new Promise((resolve) => {
     const remaining = ROSTER.length - index - 1;
+    const slot = document.getElementById("advance-slot");
     const host = document.createElement("div");
     host.className = "advance";
     host.innerHTML = `
       <button id="next-buyer">Next buyer &rarr; ${esc(ROSTER[index + 1].name)}</button>
       <button class="ghost" id="play-rest">Play the remaining ${remaining} without stopping</button>
       <span class="adv-hint">or press <kbd>Space</kbd></span>`;
-    $("#focus").appendChild(host);
-    host.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    slot.replaceChildren(host);
 
     const done = (auto) => {
       document.removeEventListener("keydown", onKey);
-      host.remove();
+      slot.replaceChildren();
       state.autoRun = auto;
       resolve();
     };
