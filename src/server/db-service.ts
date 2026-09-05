@@ -225,7 +225,9 @@ export async function persistSession(params: {
       params.hardCapPaise,
       JSON.stringify(params.flexRule),
       JSON.stringify(params.attachmentCriteria),
-      JSON.stringify(params.allowedRails),
+      // allowed_rails is TEXT[], not JSONB: node-postgres maps a JS array to a Postgres array,
+      // whereas a JSON string arrives as the literal ["upi","card"] and is rejected.
+      params.allowedRails,
       JSON.stringify(params.policySnapshot),
       params.status,
       params.outcome ?? null,
