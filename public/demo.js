@@ -458,7 +458,8 @@ async function run() {
       }
       return;
     }
-    state.results[i] = data;
+    // Carry the roster entry so the analytics view can price profit against unit cost.
+    state.results[i] = { ...data, _buyer: ROSTER[i] };
     await replay(ROSTER[i], data, paceFor());
     renderRoster(i);
     if (!state.autoRun && i < ROSTER.length - 1) {
