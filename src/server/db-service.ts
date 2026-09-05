@@ -267,6 +267,79 @@ export async function persistAuditEvents(
   }
 }
 
+/**
+ * Recent settled sessions for the transaction history view. Reads the persisted table rather
+ * than the in-memory store, so history survives a restart and reflects what actually committed.
+ */
+export async function loadRecentSessions(limit = 50): Promise<Array<Record<string, unknown>>> {
+  const result = await query<any>(
+    `SELECT session_id, user_id_hash, cart_items, cart_total_paise, hard_cap_paise,
+            status, outcome, final_total_paise, paid_via, razorpay_order_id,
+            offer_snapshot, created_at
+     FROM sessions
+     WHERE merchant_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [MERCHANT_ID, limit]
+  );
+  return result.rows.map((row) => {
+    const r = mapKeys(row);
+    const offer = (r.offerSnapshot as { offer?: Record<string, any> } | null)?.offer ?? null;
+    return {
+      sessionId: r.sessionId,
+      at: r.createdAt,
+      items: r.cartItems,
+      cartTotalPaise: Number(r.cartTotalPaise),
+      capPaise: Number(r.hardCapPaise),
+      outcome: r.outcome ?? String(r.status ?? "").toUpperCase(),
+      finalTotalPaise: r.finalTotalPaise === null ? null : Number(r.finalTotalPaise),
+      paidVia: r.paidVia ?? null,
+      razorpayOrderId: r.razorpayOrderId ?? null,
+      mechanismStep: offer?.mechanism?.step ?? null,
+      fundedBy: offer?.fundedBy ?? null,
+      merchantCostPaise: offer ? Number(offer.merchantCostPaise ?? 0) : 0,
+    };
+  });
+}
+
+/**
+ * Full detail for one session: mandate terms, both audit ledgers and the offer snapshot.
+ * Loaded on demand when a history row is expanded, so the list query stays light.
+ */
+export async function loadSessionDetail(sessionId: string): Promise<Record<string, unknown> | null> {
+  const result = await query<any>(
+    `SELECT session_id, mandate_id, user_id_hash, cart_items, cart_total_paise, cart_hash,
+            hard_cap_paise, flex_rule, attachment_criteria, allowed_rails, policy_snapshot,
+            status, outcome, final_total_paise, paid_via, razorpay_order_id, offer_snapshot,
+            buyer_ledger, merchant_ledger, tip_signatures, created_at
+     FROM sessions WHERE session_id = $1 AND merchant_id = $2`,
+    [sessionId, MERCHANT_ID]
+  );
+  if (result.rows.length === 0) return null;
+  const r = mapKeys(result.rows[0]);
+  const offer = (r.offerSnapshot as { offer?: Record<string, any>; waterfallAttempts?: unknown[] } | null) ?? null;
+  return {
+    sessionId: r.sessionId,
+    mandateId: r.mandateId,
+    at: r.createdAt,
+    items: r.cartItems,
+    cartTotalPaise: Number(r.cartTotalPaise),
+    cartHash: r.cartHash,
+    capPaise: Number(r.hardCapPaise),
+    flexRule: r.flexRule ?? null,
+    allowedRails: r.allowedRails ?? [],
+    outcome: r.outcome ?? String(r.status ?? "").toUpperCase(),
+    finalTotalPaise: r.finalTotalPaise === null ? null : Number(r.finalTotalPaise),
+    paidVia: r.paidVia ?? null,
+    razorpayOrderId: r.razorpayOrderId ?? null,
+    waterfallAttempts: offer?.waterfallAttempts ?? [],
+    offer: offer?.offer ?? null,
+    buyerLedger: r.buyerLedger ?? [],
+    merchantLedger: r.merchantLedger ?? [],
+    tipSignatures: r.tipSignatures ?? null,
+  };
+}
+
 export async function getInventory(): Promise<Record<string, { total: number; reserved: number }>> {
   const result = await query<any>(
     `SELECT sku, total_qty, reserved_qty FROM inventory WHERE merchant_id = $1`,

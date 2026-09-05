@@ -313,6 +313,21 @@ function buildBeats(buyer, data) {
   return beats;
 }
 
+/* The try-it panel replays a hand-written mandate through the same beat builder, so a judge own
+ * instruction produces the identical trace the scripted buyers do. */
+window.renderSessionBeats = async function (buyer, data, host, pace = 360) {
+  host.innerHTML = "";
+  for (const b of buildBeats(buyer, data)) {
+    const div = document.createElement("div");
+    div.className = "beat " + b.cls;
+    div.innerHTML = `<div class="gut"><span class="pip"></span><span class="ln"></span></div>
+      <div class="body"><div class="ttl">${b.ttl}</div><div class="dsc">${b.dsc}</div></div>`;
+    host.appendChild(div);
+    host.scrollTop = host.scrollHeight;
+    await sleep(pace);
+  }
+};
+
 /* ---------- replay ---------- */
 
 function renderBuyerHead(buyer, data) {
@@ -429,7 +444,7 @@ function waitForAdvance(index) {
 async function run() {
   for (const id of ["run", "run-hero", "run-foot"]) {
     const el = document.getElementById(id);
-    if (el) el.disabled = true;
+    if (el) { el.disabled = true; el.classList.remove("glow"); }
   }
   $("#idle")?.remove();
   state.results = [];
@@ -472,13 +487,16 @@ async function run() {
   await producer;
   renderRoster(-1);
   $("#speed").textContent = "";
-  showReport();
+  await showReport();
 }
 
 /* ---------- report ---------- */
 
-function showReport() {
+async function showReport() {
   window.__settleState = state;
+  // Await the refresh: the analytics view reads the history to show older traffic beside this
+  // run, and rendering before it lands would show a stale (often empty) ledger.
+  try { await window.refreshHistory?.(); } catch { /* history is optional to the report */ }
   if (window.renderReport) window.renderReport(state);
 }
 

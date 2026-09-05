@@ -22,6 +22,8 @@ import {
   loadSwapAlternatives,
   getReleaseLedger,
   addReleaseLedgerEntry,
+  loadRecentSessions,
+  loadSessionDetail,
   persistSession,
   persistAuditEvents,
   reserveInventory,
@@ -438,6 +440,29 @@ async function handleRequest(
         settle_negotiation: { rescue_eligible: true, attachment_eligible: p.category !== "electronics" },
       })),
     });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/history/detail") {
+    const id = url.searchParams.get("sessionId") ?? "";
+    if (!id) {
+      send(res, 400, { error: "sessionId is required" });
+      return;
+    }
+    const detail = await loadSessionDetail(id);
+    if (!detail) {
+      send(res, 404, { error: "Session not found" });
+      return;
+    }
+    send(res, 200, detail);
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/history") {
+    const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+    const limit = Number.isFinite(limitRaw) ? Math.min(200, Math.max(1, Math.trunc(limitRaw))) : 50;
+    const sessions = await loadRecentSessions(limit);
+    send(res, 200, { sessions });
     return;
   }
 

@@ -251,10 +251,19 @@ async function tryRun() {
     return;
   }
   btn.disabled = true;
+  q("#try-beats").innerHTML = "";
   q("#try-result").innerHTML = `<p style="font-size:13px;color:var(--muted)">Negotiating…</p>`;
   try {
     const d = await postSession({ intentText: q("#try-intent").value, skus }, "your session");
+    q("#try-result").innerHTML = "";
+    // Same beat builder the scripted run uses, so this shows the whole process, not just a verdict.
+    if (window.renderSessionBeats) {
+      await window.renderSessionBeats(
+        { name: "You", sku: skus[0].sku, intent: q("#try-intent").value },
+        d, q("#try-beats"), 320);
+    }
     q("#try-result").innerHTML = outcomeBlock(d);
+    window.refreshHistory?.();
   } catch (e) {
     q("#try-result").innerHTML = `<div class="outcome ABORTED"><div><div class="ot">Run failed</div>
       <div class="od">${escH(e.message)}</div></div></div>`;
@@ -301,6 +310,7 @@ async function runScenario(i, el) {
     const { n, expect, ...body } = s;
     const d = await postSession(body, s.n);
     el.classList.add(d.outcome === "ABORTED" || d.outcome === "PAUSED_FOR_HUMAN" ? "bad" : "ok");
+    window.refreshHistory?.();
     q("#scn-result").innerHTML =
       `<div style="font-weight:650;margin-bottom:4px;font-family:-apple-system,sans-serif">${escH(s.n)}</div>
        <div style="font-size:12px;color:var(--muted);margin-bottom:11px">Expected: ${escH(s.expect)}</div>
@@ -331,3 +341,211 @@ document.getElementById("open-analytics")?.addEventListener("click", (e) => {
   e.preventDefault();
   if (window.renderReport) window.renderReport(window.__settleState || { results: [], bySku: {} });
 });
+
+/* ---------------- transaction history ---------------- */
+
+const HIST_MECH = {
+  funded_campaign: ["Brand campaign", "--m-campaign"],
+  rail_offer: ["Bank rail offer", "--m-rail"],
+  bundle_swap: ["Bundle swap", "--m-swap"],
+  price_cut: ["Direct price cut", "--m-cut"],
+};
+const HIST_OUTCOME = { PAID: "Rescued", DIRECT_PAID: "Paid directly",
+  ABORTED: "No deal", PAUSED_FOR_HUMAN: "Handed back" };
+const settledOutcome = (r) => r.outcome === "PAID" || r.outcome === "DIRECT_PAID";
+
+let histRows = [];
+let histFilter = "all";
+const histDetailCache = new Map();
+
+function itemsLabel(items) {
+  if (!Array.isArray(items)) return "—";
+  return items.map((i) => (catalogCache.find((p) => p.sku === i.sku)?.title || i.sku) +
+    (i.qty > 1 ? " x" + i.qty : "")).join(", ");
+}
+
+/* Aggregates over every recorded session, not just the current run — this is what lets the
+ * analytics view include older and seeded traffic instead of only the eight just watched. */
+function histAggregate(rows) {
+  const closed = rows.filter(settledOutcome);
+  return {
+    total: rows.length,
+    closed: closed.length,
+    revenuePaise: closed.reduce((a, r) => a + (r.finalTotalPaise || 0), 0),
+    // offer_snapshot records what was OFFERED. Margin is only spent when the buyer accepted and
+    // the charge succeeded, so a refused offer must not be counted against the merchant.
+    ownCostPaise: closed.reduce((a, r) => a + (r.merchantCostPaise || 0), 0),
+    refused: rows.filter((r) => !settledOutcome(r)).length,
+  };
+}
+window.histAggregate = histAggregate;
+window.getHistoryRows = () => histRows;
+window.histMeta = { MECH: HIST_MECH, OUTCOME: HIST_OUTCOME, settled: settledOutcome };
+
+function renderHistFilters() {
+  const counts = {
+    all: histRows.length,
+    settled: histRows.filter(settledOutcome).length,
+    refused: histRows.filter((r) => !settledOutcome(r)).length,
+    own: histRows.filter((r) => settledOutcome(r) && r.merchantCostPaise > 0).length,
+  };
+  const labels = { all: "All", settled: "Settled", refused: "Refused", own: "Merchant paid" };
+  q("#hist-filter").innerHTML = Object.keys(labels).map((k) =>
+    `<button data-f="${k}" aria-pressed="${histFilter === k}">${labels[k]} (${counts[k]})</button>`).join("");
+  q("#hist-filter").querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => { histFilter = b.dataset.f; renderHistTable(); renderHistFilters(); }));
+}
+
+function visibleHistRows() {
+  if (histFilter === "settled") return histRows.filter(settledOutcome);
+  if (histFilter === "refused") return histRows.filter((r) => !settledOutcome(r));
+  if (histFilter === "own") return histRows.filter((r) => settledOutcome(r) && r.merchantCostPaise > 0);
+  return histRows;
+}
+
+function histRowHtml(r) {
+  const mech = r.mechanismStep ? HIST_MECH[r.mechanismStep] : null;
+  const offeredOnly = !settledOutcome(r) && r.mechanismStep;
+  const when = new Date(r.at);
+  return `<tr data-id="${escH(r.sessionId)}">
+    <td><span class="caret">&#9656;</span></td>
+    <td>${when.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
+    <td class="wide">${escH(itemsLabel(r.items))}</td>
+    <td>${inr(r.cartTotalPaise)}</td>
+    <td>${inr(r.capPaise)}</td>
+    <td><span class="pillo ${escH(r.outcome)}"><i></i>${escH(HIST_OUTCOME[r.outcome] || r.outcome)}</span></td>
+    <td>${mech ? `<span class="mech"><span class="sq" style="background:var(${mech[1]})"></span>${escH(mech[0])}${offeredOnly ? " (offered)" : ""}</span>` : "—"}</td>
+    <td>${settledOutcome(r) ? (r.merchantCostPaise ? inr(r.merchantCostPaise) : "₹0")
+      : `<span style="color:var(--muted)">not spent</span>`}</td>
+    <td>${r.finalTotalPaise != null ? inr(r.finalTotalPaise) : "—"}</td>
+    <td>${escH(r.paidVia || "—")}</td>
+  </tr>`;
+}
+
+const HIST_HEAD = `<thead><tr><th></th><th>When</th><th>Items</th><th>Cart</th><th>Cap</th>
+  <th>Outcome</th><th>Funding</th><th>Own cost</th><th>Settled</th><th>Rail</th></tr></thead>`;
+
+/* Shared by the standalone history section and the analytics view. */
+function buildHistTable(rows) {
+  return `<table>${HIST_HEAD}<tbody>${rows.map(histRowHtml).join("")}</tbody></table>`;
+}
+window.buildHistTable = buildHistTable;
+
+function renderHistTable() {
+  const body = q("#hist-body");
+  const rows = visibleHistRows();
+  if (!rows.length) {
+    body.innerHTML = `<p class="sub" style="padding:16px 2px">No sessions match this filter.</p>`;
+    return;
+  }
+  body.innerHTML = buildHistTable(rows);
+  wireHistRows(body);
+}
+
+function kv(k, v) { return `<div class="kv"><span>${escH(k)}</span><span>${escH(v)}</span></div>`; }
+
+function detailHtml(d) {
+  const flex = d.flexRule
+    ? `${inr(d.flexRule.maxStretchPaise)} on ${d.flexRule.requireSoftMatches || 1} match(es)` : "none";
+  const trace = (d.waterfallAttempts || []).length
+    ? d.waterfallAttempts.map((a) =>
+        `${HIST_MECH[a.step] ? HIST_MECH[a.step][0] : a.step} <span class="verdict ${a.verdict === "PASS" ? "PASS" : "REJECT"}">${escH(a.verdict)}</span>`).join(" &rarr; ")
+    : `<span style="color:var(--muted)">no rescue needed</span>`;
+  const pay = (d.buyerLedger || []).filter((e) => e.kind === "PAYMENT_ATTEMPT");
+  return `<div class="inner">
+    <div class="grp"><h5>Mandate</h5>
+      ${kv("Hard cap", inr(d.capPaise))}
+      ${kv("Stretch rule", flex)}
+      ${kv("Allowed rails", (d.allowedRails || []).join(", ") || "—")}
+      ${kv("Mandate id", String(d.mandateId || "—").slice(0, 22))}
+    </div>
+    <div class="grp"><h5>Cart</h5>
+      ${kv("Items", itemsLabel(d.items))}
+      ${kv("Cart total", inr(d.cartTotalPaise))}
+      ${kv("Hash at consent", String(d.cartHash || "").slice(0, 16) + "…")}
+    </div>
+    <div class="grp"><h5>Waterfall</h5>
+      <div style="font-size:12px;line-height:1.9">${trace}</div>
+      ${d.offer ? kv("Offer total", inr(d.offer.newTotalPaise)) : ""}
+      ${d.offer ? kv("Funded by", String(d.offer.fundedBy || "—").replace(/_/g, " ")) : ""}
+      ${d.offer ? kv("Merchant cost", inr(d.offer.merchantCostPaise || 0)) : ""}
+    </div>
+    <div class="grp"><h5>Settlement</h5>
+      ${kv("Outcome", HIST_OUTCOME[d.outcome] || d.outcome)}
+      ${kv("Final total", d.finalTotalPaise != null ? inr(d.finalTotalPaise) : "—")}
+      ${kv("Paid via", d.paidVia || "—")}
+      ${kv("Payment attempts", String(pay.length))}
+      ${d.razorpayOrderId ? kv("Razorpay order", d.razorpayOrderId) : ""}
+      ${kv("Ledger entries", `${(d.buyerLedger || []).length} buyer / ${(d.merchantLedger || []).length} merchant`)}
+    </div>
+  </div>`;
+}
+
+async function toggleDetail(tr) {
+  const id = tr.dataset.id;
+  const next = tr.nextElementSibling;
+  if (next && next.classList.contains("detail")) {
+    next.remove(); tr.classList.remove("open"); return;
+  }
+  const tbody = tr.parentElement;
+  tbody.querySelectorAll("tr.detail").forEach((x) => x.remove());
+  tbody.querySelectorAll("tr.open").forEach((x) => x.classList.remove("open"));
+  tr.classList.add("open");
+  const row = document.createElement("tr");
+  row.className = "detail";
+  const cols = tr.children.length;
+  row.innerHTML = `<td colspan="${cols}"><div class="inner"><div class="grp">
+    <h5>Loading</h5><div class="kv"><span>Reading the session record…</span><span></span></div>
+  </div></div></td>`;
+  tr.after(row);
+  try {
+    let d = histDetailCache.get(id);
+    if (!d) {
+      d = await readJsonSafe(await fetch("/api/history/detail?sessionId=" + encodeURIComponent(id)), "detail");
+      histDetailCache.set(id, d);
+    }
+    row.innerHTML = `<td colspan="${cols}">${detailHtml(d)}</td>`;
+  } catch (e) {
+    row.innerHTML = `<td colspan="${cols}"><div class="inner"><div class="grp">
+      <h5>Unavailable</h5><div class="kv"><span>${escH(e.message)}</span><span></span></div>
+    </div></div></td>`;
+  }
+}
+
+function wireHistRows(scope) {
+  scope.querySelectorAll("tbody tr[data-id]").forEach((tr) =>
+    tr.addEventListener("click", () => toggleDetail(tr)));
+}
+window.wireHistRows = wireHistRows;
+
+async function loadHistory() {
+  const body = q("#hist-body"), sum = q("#hist-sum");
+  try {
+    const d = await readJsonSafe(await fetch("/api/history?limit=200"), "history");
+    histRows = d.sessions || [];
+    histDetailCache.clear();
+  } catch (e) {
+    if (body) body.innerHTML = `<p class="sub" style="padding:16px 2px">History unavailable — ${escH(e.message)}</p>`;
+    return;
+  }
+  if (!body) return;
+  if (!histRows.length) {
+    body.innerHTML = `<p class="sub" style="padding:16px 2px">No sessions recorded yet.
+      Run the live demo or negotiate your own mandate above.</p>`;
+    if (sum) sum.innerHTML = "";
+    q("#hist-filter").innerHTML = "";
+    return;
+  }
+  const a = histAggregate(histRows);
+  if (sum) sum.innerHTML = [
+    ["Sessions recorded", String(a.total)],
+    ["Settled", a.closed + " of " + a.total],
+    ["Revenue captured", inr(a.revenuePaise)],
+    ["Merchant's own money", inr(a.ownCostPaise)],
+  ].map(([k, v]) => `<div><div class="k">${escH(k)}</div><div class="v">${escH(v)}</div></div>`).join("");
+  renderHistFilters();
+  renderHistTable();
+}
+
+window.refreshHistory = loadHistory;
+loadCatalogInto().then(loadHistory).catch(loadHistory);

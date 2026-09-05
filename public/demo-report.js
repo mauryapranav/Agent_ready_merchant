@@ -31,6 +31,7 @@ function perBuyer(state) {
     const revenue = closed ? (r.finalTotalPaise || 0) : 0;
     const cost = closed ? (product?.costPaise || 0) : 0;
     return {
+      sessionId: r.sessionId,
       name: b.name || r.sessionId, outcome: r.outcome, closed,
       title: product?.title || b.sku || "—",
       listPaise: product?.pricePaise || 0,
@@ -186,6 +187,48 @@ window.renderReport = function renderReport(state) {
         <code>docs/metrics-report.json</code> as an explicitly-labelled ceiling, not a headline.</p>`;
   }
 
+  /* Everything the merchant has ever recorded, not just the cohort just watched. Older runs,
+   * hand-written mandates and adversarial scenarios all land in the same table. */
+  const allRows = (window.getHistoryRows?.() || []);
+  const older = allRows.filter((h) => !rows.some((r) => r.sessionId === h.sessionId));
+  let allTrafficHtml = "";
+  if (allRows.length > rows.length) {
+    const agg = window.histAggregate(allRows);
+    const thisRun = { closed: closed.length, total: rows.length, revenue, own: ownCost };
+    allTrafficHtml = `
+      <h2 class="hd" style="margin:36px 0 4px">All recorded traffic</h2>
+      <p class="sub" style="margin-bottom:16px">Every session in the merchant ledger —
+        ${agg.total} in total, of which ${rows.length} are the run you just watched.</p>
+      <div class="an-grid2">
+        ${panel("Settled versus refused, all traffic",
+          "Refusals are kept on the record: a gate that held is as much a result as a sale.",
+          barChart([
+            { label: "Settled", value: agg.closed, display: agg.closed + " of " + agg.total,
+              css: "--m-swap", tip: agg.closed + " sessions completed a payment." },
+            { label: "Refused or paused", value: agg.refused, display: String(agg.refused),
+              css: "--m-rail", tip: agg.refused + " sessions ended without a sale, by design." },
+          ]))}
+        ${panel("This run against everything before it",
+          "Same engine, same policy — the cohort you watched beside the accumulated ledger.",
+          barChart([
+            { label: "This run", value: thisRun.revenue, display: money(thisRun.revenue),
+              css: "--m-campaign", tip: thisRun.closed + " of " + thisRun.total + " closed, " + money(thisRun.own) + " of merchant margin." },
+            { label: "All traffic", value: agg.revenuePaise, display: money(agg.revenuePaise),
+              css: "--m-swap", tip: agg.closed + " of " + agg.total + " closed, " + money(agg.ownCostPaise) + " of merchant margin." },
+          ]) + table(["Scope", "Settled", "Revenue", "Merchant own money"], [
+            ["This run", thisRun.closed + "/" + thisRun.total, money(thisRun.revenue), money(thisRun.own)],
+            ["All recorded", agg.closed + "/" + agg.total, money(agg.revenuePaise), money(agg.ownCostPaise)],
+          ]))}
+      </div>`;
+  }
+
+  const historyHtml = older.length
+    ? `<h2 class="hd" style="margin:36px 0 4px">Past transactions</h2>
+       <p class="sub" style="margin-bottom:14px">${older.length} earlier session${older.length === 1 ? "" : "s"}
+         from before this run. Click any row to expand its mandate, waterfall trace and settlement.</p>
+       <div class="hist" id="an-hist">${window.buildHistTable(older)}</div>`
+    : "";
+
   const view = document.getElementById("analytics");
 
   // Reachable before any run: show the precalculated simulation on its own rather than a
@@ -291,6 +334,10 @@ window.renderReport = function renderReport(state) {
             : `<p class="sub">No session in this run required merchant money — every rescue was funded externally or was margin-neutral.</p>`))}
       </div>
 
+      ${allTrafficHtml}
+
+      ${historyHtml}
+
       <h2 class="hd" style="margin:36px 0 4px">At population scale</h2>
       <p class="sub" style="margin-bottom:16px">A separate seeded simulation — not the ${rows.length} sessions above.</p>
       ${popHtml}
@@ -307,6 +354,8 @@ window.renderReport = function renderReport(state) {
   });
 
   wireTips(view);
+  const anHist = view.querySelector("#an-hist");
+  if (anHist) window.wireHistRows?.(anHist);
 };
 
 function wireTips(view) {

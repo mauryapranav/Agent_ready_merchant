@@ -28,6 +28,8 @@
   [data-theme="dark"] nav.top{background:rgba(20,17,14,0.92);background:color-mix(in srgb,var(--paper) 92%,transparent)}
   *{box-sizing:border-box}
   html{scroll-behavior:smooth;scroll-snap-type:y proximity}
+  @media(max-height:760px),(hover:none){html{scroll-snap-type:none}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
   body{margin:0;background:var(--paper);color:var(--ink);
     font:15px/1.62 ui-serif,Georgia,"Iowan Old Style",serif;-webkit-font-smoothing:antialiased;
     background-image:radial-gradient(circle at 1px 1px,
@@ -59,7 +61,10 @@
   h2.hd{font-family:ui-serif,Georgia,serif;font-size:30px;font-size:clamp(25px,3.3vw,36px);line-height:1.16;
     letter-spacing:-.02em;margin:0 0 12px;font-weight:600;max-width:19ch}
   h2.hd em{font-style:normal;color:var(--accent)}
-  .lede{color:var(--ink-2);font-size:15.5px;max-width:58ch;margin:0 0 8px}
+  .lede{color:var(--ink-2);font-size:15.5px;max-width:58ch;margin:0 0 8px;overflow-wrap:break-word}
+  h1,h2,h3,p,td,th,li{overflow-wrap:break-word}
+  .band-in,.hero-in,.an-body{min-width:0}
+  .band-in > *,.hero-in > *{min-width:0}
 
   /* ---- top bar ---- */
   nav.top{position:sticky;top:0;z-index:40;
@@ -74,13 +79,31 @@
     color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
   .nav-links a{text-decoration:none}
   .nav-links a:hover{color:var(--accent)}
-  @media(max-width:1020px){.nav-links{display:none}}
+  @media(max-width:1240px){.nav-links{gap:13px;font-size:11.5px}}
+  @media(max-width:1120px){.nav-links{display:none}}
+  @media(max-width:520px){.nav-in{padding:9px 16px;gap:10px}
+    .nav-cta{padding-left:10px}
+    .nav-cta .btn{padding:9px 12px;font-size:12px}
+    .speed{display:none}}
   .btn{background:var(--accent);color:#fff;padding:8px 15px;font-size:12.5px;font-weight:600;
     letter-spacing:.01em}
   .btn:hover{filter:brightness(1.07)}
   .btn.line{background:transparent;color:var(--ink);border:1px solid var(--rule-hard)}
   .btn.line:hover{border-color:var(--accent);color:var(--accent);filter:none}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn:disabled{opacity:.4;cursor:not-allowed;animation:none;box-shadow:none}
+  /* The run is the point of the page: the primary CTA breathes until it is used. */
+  .btn.glow{position:relative;box-shadow:0 0 0 0 rgba(180,83,31,.55);
+    box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent);
+    animation:pulse 2.6s ease-out infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(180,83,31,.55)}
+    70%{box-shadow:0 0 0 12px rgba(180,83,31,0)}
+    100%{box-shadow:0 0 0 0 rgba(180,83,31,0)}}
+  @media(prefers-reduced-motion:reduce){.btn.glow{animation:none;
+    box-shadow:0 0 0 3px rgba(180,83,31,.26)}}
+  .nav-cta{display:flex;align-items:center;gap:10px;padding-left:16px;margin-left:auto;
+    border-left:1px solid var(--rule);flex-shrink:0}
+  .nav-cta .btn{padding:10px 16px;font-size:13px;white-space:nowrap}
   .icon-btn{background:transparent;border:1px solid var(--rule-hard);color:var(--ink);
     width:31px;height:31px;display:grid;place-items:center;border-radius:3px}
   .speed{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;white-space:nowrap}
@@ -117,7 +140,7 @@
     padding:10px 14px;border-bottom:1px solid var(--rule)}
   .lrow:last-child{border-bottom:0}
   .lrow .k{font-family:-apple-system,sans-serif;font-size:12.5px;color:var(--muted)}
-  .lrow .v{font-family:ui-monospace,monospace;font-size:13.5px;font-weight:600;
+  .lrow .v{font-family:ui-monospace,monospace;font-size:13.5px;font-weight:600;overflow-wrap:anywhere;
     font-variant-numeric:tabular-nums;text-align:right}
   .lrow .v.big{font-size:19px}
   .lrow.step .k{display:flex;align-items:center;gap:8px;color:var(--ink)}
@@ -165,13 +188,17 @@
     letter-spacing:-.02em;font-weight:600;line-height:1.15}
   .wf-col .who{font-family:-apple-system,sans-serif;font-size:10.5px;color:var(--stage);
     font-weight:700;text-transform:uppercase;letter-spacing:.07em}
-  .wf-col p{font-size:13px;color:var(--muted);margin:0;padding:12px 15px;line-height:1.5;flex:1}
+  .wf-col p{font-size:13px;color:var(--muted);margin:0;padding:12px 15px;line-height:1.5;flex:1;
+    overflow-wrap:anywhere;hyphens:auto}
   .wf-col .kvs{border-top:1px solid var(--rule);background:var(--sunk)}
   .wf-col .kv{display:flex;justify-content:space-between;gap:8px;padding:7px 15px;
     border-bottom:1px solid var(--rule);font-size:11.5px}
   .wf-col .kv:last-child{border-bottom:0}
   .wf-col .kv span:first-child{color:var(--muted);font-family:-apple-system,sans-serif}
-  .wf-col .kv span:last-child{font-family:ui-monospace,monospace;font-weight:600;text-align:right}
+  .wf-col .kv span:last-child{font-family:ui-monospace,monospace;font-weight:600;text-align:right;
+    overflow-wrap:anywhere}
+  .wf-col .kv span:first-child{flex-shrink:0}
+  .wf-col h3{overflow-wrap:anywhere}
   .wf-col .costbar{height:5px;background:var(--track)}
   .wf-col .costbar i{display:block;height:100%;background:var(--stage)}
   .wf-flow{display:flex;align-items:center;gap:8px;margin-top:14px;font-family:-apple-system,sans-serif;
@@ -295,7 +322,7 @@
   .beat .ln{display:none}
   .beat .body{flex:1}
   .beat .ttl{font-family:-apple-system,sans-serif;font-size:13px;font-weight:650}
-  .beat .dsc{font-size:13px;color:var(--muted);margin-top:2px}
+  .beat .dsc{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
   .beat.gate .pip{background:var(--info)}
   .beat.pass .pip{background:var(--ok)}
   .beat.fail .pip{background:var(--bad)}
@@ -307,9 +334,10 @@
   .verdict.REJECT{color:var(--bad);border-color:rgba(158,43,37,0.4);
     border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
   .outcome{margin-top:15px;padding:13px 15px;border:1px solid var(--rule-hard);border-radius:3px;
-    display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--sunk)}
+    display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--sunk);
+    flex-wrap:wrap}
   .outcome .ot{font-family:-apple-system,sans-serif;font-weight:700;font-size:14px}
-  .outcome .od{font-size:13px;color:var(--muted);margin-top:2px}
+  .outcome .od{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
   .outcome.PAID,.outcome.DIRECT_PAID{box-shadow:inset 3px 0 0 var(--ok)}
   .outcome.ABORTED{box-shadow:inset 3px 0 0 var(--bad)}
   .outcome.PAUSED_FOR_HUMAN{box-shadow:inset 3px 0 0 var(--warn)}
@@ -357,7 +385,8 @@
   .chart .rt{background:var(--track);height:12px;overflow:hidden;border-radius:1px}
   .chart .rb{height:100%;transition:width .6s cubic-bezier(.4,0,.2,1)}
   .chart .rv{font-family:ui-monospace,monospace;font-size:12.5px;font-weight:600;
-    font-variant-numeric:tabular-nums;text-align:right}
+    font-variant-numeric:tabular-nums;text-align:right;overflow:hidden;text-overflow:ellipsis}
+  @media(max-width:620px){.chart .row{grid-template-columns:96px 1fr 64px;gap:8px}}
   .tbl{margin-top:12px}
   .tbl summary{font-family:-apple-system,sans-serif;font-size:11px;color:var(--muted);
     cursor:pointer;padding:4px 0;text-transform:uppercase;letter-spacing:.07em}
@@ -380,6 +409,60 @@
   .two{display:grid;grid-template-columns:1fr 1fr;gap:34px}
   @media(max-width:760px){.two{grid-template-columns:1fr;gap:22px}}
   .hidden{display:none !important}
+
+  /* ---- transaction history ---- */
+  .hist{border-top:1px solid var(--rule-hard);margin-top:18px;max-height:52vh;
+    overflow:auto;max-width:100%}
+  .hist table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px}
+  .hist thead th{position:sticky;top:0;background:var(--sunk);text-align:left;
+    font-family:-apple-system,sans-serif;font-size:10px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted);font-weight:600;padding:9px 10px;
+    border-bottom:1px solid var(--rule-hard);z-index:1}
+  .hist td{padding:9px 10px;border-bottom:1px solid var(--rule);
+    font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hist td.wide{font-family:-apple-system,sans-serif;white-space:normal;min-width:150px}
+  .hist tbody tr{cursor:pointer}
+  .hist tbody tr:hover{background:var(--sunk)}
+  .hist tbody tr.open{background:var(--sunk);box-shadow:inset 2px 0 0 var(--accent)}
+  .hist .caret{display:inline-block;width:9px;color:var(--muted);transition:transform .18s}
+  .hist tr.open .caret{transform:rotate(90deg);color:var(--accent)}
+  .hist .pillo{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:2px;
+    font-family:-apple-system,sans-serif;font-size:10.5px;font-weight:700;border:1px solid}
+  .hist .pillo i{width:6px;height:6px;border-radius:50%}
+  .hist .PAID,.hist .DIRECT_PAID{color:var(--ok);border-color:rgba(47,107,60,.4)}
+  .hist .PAID i,.hist .DIRECT_PAID i{background:var(--ok)}
+  .hist .ABORTED{color:var(--bad);border-color:rgba(158,43,37,.4)}
+  .hist .ABORTED i{background:var(--bad)}
+  .hist .PAUSED_FOR_HUMAN{color:var(--warn);border-color:rgba(138,90,18,.4)}
+  .hist .PAUSED_FOR_HUMAN i{background:var(--warn)}
+  .hist .mech{display:inline-flex;align-items:center;gap:6px}
+  .hist .mech .sq{width:8px;height:8px;border-radius:1px}
+  .hist .detail td{padding:0;border-bottom:1px solid var(--rule-hard);white-space:normal}
+  .hist .detail .inner{padding:14px 16px;background:var(--card);
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  .hist .detail .grp{border-left:2px solid var(--rule-hard);padding-left:12px}
+  .hist .detail .grp h5{margin:0 0 6px;font-family:-apple-system,sans-serif;font-size:10px;
+    text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+  .hist .detail .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;
+    padding:3px 0;font-family:ui-monospace,monospace}
+  .hist .detail .kv span:first-child{color:var(--muted);font-family:-apple-system,sans-serif}
+  .hist-sum{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule-hard);
+    border-radius:4px;background:var(--card);overflow:hidden;margin-top:16px}
+  @media(max-width:760px){.hist-sum{grid-template-columns:repeat(2,1fr)}}
+  .hist-sum > div{padding:13px 16px;border-right:1px solid var(--rule)}
+  .hist-sum > div:last-child{border-right:0}
+  .hist-sum .k{font-family:-apple-system,sans-serif;font-size:10.5px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.07em}
+  .hist-sum .v{font-family:ui-monospace,monospace;font-size:18px;font-weight:600;margin-top:3px}
+  .hist-filter{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+  .hist-filter button{background:transparent;border:1px solid var(--rule-hard);color:var(--muted);
+    font-family:-apple-system,sans-serif;font-size:11px;padding:5px 11px;letter-spacing:.03em}
+  .hist-filter button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);
+    background:rgba(180,83,31,.06)}
+  /* Beat replay reused inside the try-it panel */
+  .try-beats{max-height:300px;overflow:auto;border:1px solid var(--rule);border-radius:3px;
+    padding:4px 12px;margin-top:12px;background:var(--card)}
+  .try-beats:empty{display:none}
 
   /* ---- analytics: a full-screen view the run hands off to ---- */
   .analytics{display:none}
@@ -411,7 +494,7 @@
   .an-note .k{font-family:-apple-system,sans-serif;font-size:11px;color:var(--muted);
     text-transform:uppercase;letter-spacing:.07em}
   .an-note .v{font-family:ui-monospace,monospace;font-size:18px;font-weight:600;
-    font-variant-numeric:tabular-nums}
+    font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
   .foot{border-top:1px solid var(--rule-hard);background:var(--card)}
   .foot-in{max-width:1180px;margin:0 auto;padding:44px 26px;display:flex;
     justify-content:space-between;align-items:center;gap:26px;flex-wrap:wrap}
@@ -440,11 +523,14 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
       <a href="#problem">Problem</a><a href="#waterfall">Waterfall</a><a href="#live">Live run</a>
       <a href="#refusal">Refusal</a><a href="#evidence">Evidence</a><a href="#governance">Governance</a>
       <a href="#try">Try it</a><a href="#console">Console</a>
+      <a href="#history">History</a>
       <a href="#" id="open-analytics" style="color:var(--accent)">Analytics</a>
     </div>
-    <span class="speed" id="speed"></span>
-    <button class="btn" id="run">Open the store</button>
-    <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
+    <div class="nav-cta">
+      <span class="speed" id="speed"></span>
+      <button class="btn glow" id="run">&#9654;&nbsp; Open the store</button>
+      <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
+    </div>
   </div>
 </nav>
 
@@ -457,7 +543,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
          the money. Every rupee moves through deterministic gates the agent cannot argue with —
          and the merchant spends other people's budget before its own.</p>
       <div class="cta-row">
-        <button class="btn" id="run-hero">Watch 8 AI buyers negotiate</button>
+        <button class="btn glow" id="run-hero">&#9654;&nbsp; Watch 8 AI buyers negotiate</button>
         <a class="btn line" href="#waterfall" style="text-decoration:none;display:inline-block">Read the mechanism</a>
       </div>
     </div>
@@ -667,6 +753,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
         <div>
           <label class="fl">Cart</label>
           <div class="skus" id="sku-list"></div>
+          <div class="try-beats" id="try-beats"></div>
           <div id="try-result" style="margin-top:13px"></div>
         </div>
       </div>
@@ -691,6 +778,21 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
           <div id="scn-result" style="font-size:13px;color:var(--muted)">Pick a scenario to run it.</div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="band" id="history">
+  <div class="band-in">
+    <div class="marker"><div class="no">09</div><div class="lb">Transaction<br>history</div></div>
+    <div>
+      <h2 class="hd">Every session, <em>on the record.</em></h2>
+      <p class="lede">Read back from the sessions table, not from memory — so this survives a
+        restart and shows what actually committed. Refusals are kept beside settlements. Click any
+        row to expand its mandate, waterfall trace and settlement.</p>
+      <div class="hist-sum" id="hist-sum"></div>
+      <div class="hist-filter" id="hist-filter"></div>
+      <div class="hist" id="hist-body"></div>
     </div>
   </div>
 </div>
