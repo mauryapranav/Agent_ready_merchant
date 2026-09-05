@@ -5,7 +5,9 @@ export interface RateLimitConfig {
   refillPerMinute: number;
 }
 
-export const DEFAULT_RATE_LIMIT: RateLimitConfig = { capacity: 10, refillPerMinute: 60 };
+// Capacity has to clear one full demo run in a burst: the roster is 13 sequential sessions and
+// the old ceiling of 10 tripped partway through, forcing retries mid-presentation. Still bounded.
+export const DEFAULT_RATE_LIMIT: RateLimitConfig = { capacity: 24, refillPerMinute: 60 };
 
 export function getClientIp(req: import("node:http").IncomingMessage): string {
   const forwarded = req.headers["x-forwarded-for"];

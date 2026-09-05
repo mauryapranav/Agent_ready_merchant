@@ -160,11 +160,19 @@ function outcomeBlock(d) {
     ${trace ? `<div style="font-size:12px;color:var(--muted);margin-top:10px;
       font-family:ui-monospace,monospace">${trace}</div>` : ""}
     <div class="chips" style="margin-top:10px">
-      <span class="chip">${d.parsedBy === "llm" ? "LLM parsed" : "deterministic parse"}</span>
+      ${d.parsedBy === "llm" ? `<span class="chip">LLM parsed</span>` : `<span class="chip">deterministic parse</span>`}
       ${d.verified ? `<span class="chip ok"><i></i>ledger verified</span>`
         : `<span class="chip bad"><i></i>chain broken</span>`}
       ${d.paidVia ? `<span class="chip">paid via ${escH(d.paidVia)}</span>` : ""}
-    </div>`;
+      ${d.razorpayOrderId ? `<span class="chip">${escH(d.razorpayOrderId)}</span>` : ""}
+    </div>
+    ${d.receipt && d.receipt.text ? `<div class="receipt">
+      <div class="rc-hd">Receipt &middot; written by ${d.receipt.generated === "llm" ? "the LLM" : "template"}</div>
+      <p>${escH(d.receipt.text)}</p></div>` : ""}
+    ${d.tipSignatures && d.tipSignatures.buyer ? `<div class="proof">
+      <span class="mono">buyer tip ${escH(String(d.tipSignatures.buyer.hash).slice(0, 12))}…</span>
+      <span class="mono">ed25519 ${escH(String(d.tipSignatures.buyer.signature).slice(0, 14))}…</span>
+    </div>` : ""}`;
 }
 
 /* ---------------- try it yourself ---------------- */
@@ -549,3 +557,33 @@ async function loadHistory() {
 
 window.refreshHistory = loadHistory;
 loadCatalogInto().then(loadHistory).catch(loadHistory);
+
+/* ---------------- protocol surfaces ---------------- */
+
+/* Both endpoints already existed and nothing linked to them. Fetched live so what is shown is
+ * literally what an agent or a counterparty would receive. */
+async function loadProtocol() {
+  const feedEl = q("#proto-feed"), jwksEl = q("#proto-jwks");
+  if (feedEl) {
+    try {
+      const d = await readJsonSafe(await fetch("/acp/feed"), "feed");
+      const first = (d.items || [])[0];
+      feedEl.textContent = JSON.stringify({
+        protocol: d.protocol, flavor: d.flavor, version: d.version,
+        merchant: d.merchant, items: d.items ? d.items.length : 0,
+        sample: first,
+      }, null, 2);
+    } catch (e) { feedEl.textContent = "Feed unavailable — " + e.message; }
+  }
+  if (jwksEl) {
+    try {
+      const d = await readJsonSafe(await fetch("/.well-known/jwks.json"), "jwks");
+      const k = (d.keys || [])[0];
+      jwksEl.textContent = k
+        ? JSON.stringify({ keys: d.keys.length, kty: k.kty, crv: k.crv, alg: k.alg,
+            kid: k.kid, use: k.use, x: k.x ? String(k.x).slice(0, 24) + "…" : undefined }, null, 2)
+        : JSON.stringify(d, null, 2);
+    } catch (e) { jwksEl.textContent = "JWKS unavailable — " + e.message; }
+  }
+}
+loadProtocol();

@@ -151,7 +151,9 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     if (decision.gate.trace.verdict === "REJECT_INSUFFICIENT_MATCHES") {
       return finish(sessionId, "PAUSED_FOR_HUMAN", null, "OFFER_INVALID", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
     }
-    return finish(sessionId, "ABORTED", null, "BUDGET_EXCEEDED", null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
+    // An offer that lapsed before acceptance is not the same failure as one the cap refused.
+    const reason = decision.gate.trace.verdict === "REJECT_EXPIRED" ? "OFFER_EXPIRED" : "BUDGET_EXCEEDED";
+    return finish(sessionId, "ABORTED", null, reason, null, null, executor.name, buyerLedger, merchantLedger, now, decision.narration, keys, updatedCampaigns);
   }
 
   const acceptedOffer = wf.offer;

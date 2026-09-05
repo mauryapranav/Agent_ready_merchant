@@ -10,7 +10,7 @@ export interface CartState {
 }
 
 export interface BuyerGateTrace {
-  verdict: "PASS_CAP" | "PASS_FLEX" | "REJECT_OVER_STRETCH" | "REJECT_INSUFFICIENT_MATCHES" | "REJECT_NO_FLEX_RULE";
+  verdict: "PASS_CAP" | "PASS_FLEX" | "REJECT_OVER_STRETCH" | "REJECT_INSUFFICIENT_MATCHES" | "REJECT_NO_FLEX_RULE" | "REJECT_EXPIRED";
   capPaise: number;
   proposedPaise: number;
   stretchUsedPaise: number;

@@ -277,6 +277,14 @@
   .rost .b.active .av{background:var(--accent);color:#fff;border-color:var(--accent)}
   .rost .nm{flex:1;font-weight:600}
   .rost .st{font-size:10px;color:var(--muted);flex-shrink:0;font-family:ui-monospace,monospace}
+  .rost .ord{font-family:ui-monospace,monospace;font-size:9.5px;color:var(--muted);
+    min-width:20px;flex-shrink:0}
+  .rost-head{font-family:-apple-system,sans-serif;font-size:9.5px;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--accent);padding:11px 2px 5px;border-bottom:1px solid var(--rule-hard);
+    margin-top:4px}
+  .rost-head:first-child{margin-top:0;padding-top:2px}
+  .buyer-ord{display:block;font-family:-apple-system,sans-serif;font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-top:3px}
   /* Fixed frame: beats scroll inside it, so appending them never reflows the page. */
   .focus{height:clamp(360px,50vh,560px);overflow-y:auto;scroll-behavior:smooth;overscroll-behavior:contain}
   .focus,.skus,.scn,.analytics{scrollbar-width:thin;scrollbar-color:var(--rule-hard) transparent}
@@ -410,6 +418,33 @@
   @media(max-width:760px){.two{grid-template-columns:1fr;gap:22px}}
   .hidden{display:none !important}
 
+  /* ---- receipt + cryptographic proof ---- */
+  .receipt{margin-top:12px;border:1px solid var(--rule);border-left:2px solid var(--accent);
+    border-radius:3px;background:var(--card);padding:11px 14px}
+  .rc-hd{font-family:-apple-system,sans-serif;font-size:9.5px;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+  .receipt p{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+  .proof{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;
+    font-family:ui-monospace,monospace;font-size:10.5px;color:var(--muted)}
+  .proof .mono{border:1px solid var(--rule);border-radius:2px;padding:2px 7px;background:var(--sunk)}
+
+  /* ---- protocol surfaces ---- */
+  .proto{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+  @media(max-width:900px){.proto{grid-template-columns:1fr}}
+  .proto-card{background:var(--card);border:1px solid var(--rule-hard);border-radius:4px;
+    overflow:hidden;box-shadow:0 1px 0 var(--rule-hard),0 10px 22px -18px rgba(0,0,0,.5)}
+  .proto-card .ph{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--sunk);
+    font-family:-apple-system,sans-serif;font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.09em;color:var(--muted)}
+  .proto-card .ph code{font-family:ui-monospace,monospace;color:var(--accent);text-transform:none;
+    letter-spacing:0;font-size:11px}
+  .proto-card .pb{padding:13px 14px;font-size:13px;color:var(--muted);line-height:1.55}
+  .proto-out{margin:10px 14px 14px;background:var(--sunk);border:1px solid var(--rule);
+    border-radius:3px;padding:10px 12px;font-family:ui-monospace,monospace;font-size:11px;
+    line-height:1.6;max-height:190px;overflow:auto;white-space:pre-wrap;word-break:break-word;
+    color:var(--ink-2)}
+
   /* ---- transaction history ---- */
   .hist{border-top:1px solid var(--rule-hard);margin-top:18px;max-height:52vh;
     overflow:auto;max-width:100%}
@@ -523,6 +558,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
       <a href="#problem">Problem</a><a href="#waterfall">Waterfall</a><a href="#live">Live run</a>
       <a href="#refusal">Refusal</a><a href="#evidence">Evidence</a><a href="#governance">Governance</a>
       <a href="#try">Try it</a><a href="#console">Console</a>
+      <a href="#protocol">Protocol</a>
       <a href="#history">History</a>
       <a href="#" id="open-analytics" style="color:var(--accent)">Analytics</a>
     </div>
@@ -543,7 +579,7 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
          the money. Every rupee moves through deterministic gates the agent cannot argue with —
          and the merchant spends other people's budget before its own.</p>
       <div class="cta-row">
-        <button class="btn glow" id="run-hero">&#9654;&nbsp; Watch 8 AI buyers negotiate</button>
+        <button class="btn glow" id="run-hero">&#9654;&nbsp; Watch 13 AI buyers negotiate</button>
         <a class="btn line" href="#waterfall" style="text-decoration:none;display:inline-block">Read the mechanism</a>
       </div>
     </div>
@@ -610,9 +646,11 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
   <div class="band-in">
     <div class="marker"><div class="no">03</div><div class="lb">Live<br>negotiation</div></div>
     <div>
-      <h2 class="hd">Eight AI buyers, <em>one shared budget pool.</em></h2>
+      <h2 class="hd">Thirteen AI buyers, <em>one shared budget pool.</em></h2>
       <p class="lede">Each buyer runs against the real API, the real database and the real payment
         rails — one at a time, because the campaign budget they share depletes as they spend it.
+        The first seven walk every funding source and both attachment outcomes; the rest put the same engine under
+        adverse conditions — rail failures, an expired offer, a tampered cart, gates that refuse.
         Nothing here is pre-recorded.</p>
       <div id="stale-warn" style="margin-top:18px"></div>
       <div class="stage" id="stage">
@@ -782,9 +820,35 @@ button:active:not(:disabled),.btn:active:not(:disabled){transform:translateY(1px
   </div>
 </div>
 
+<div class="band" id="protocol">
+  <div class="band-in">
+    <div class="marker"><div class="no">09</div><div class="lb">Protocol<br>&amp; proof</div></div>
+    <div>
+      <h2 class="hd">Machine-readable <em>both ways.</em></h2>
+      <p class="lede">An agent has to be able to discover what you sell and verify what you signed,
+        without a human in the loop. Both are live endpoints on this server — fetched here in the
+        browser, not mocked.</p>
+      <div class="proto">
+        <div class="proto-card">
+          <div class="ph"><span>Agentic product feed</span><code>GET /acp/feed</code></div>
+          <div class="pb">Every SKU with price, rails it accepts, and whether it is eligible for
+            rescue or attachment — the shape a buying agent needs before it ever opens a session.</div>
+          <div class="proto-out" id="proto-feed">Loading…</div>
+        </div>
+        <div class="proto-card">
+          <div class="ph"><span>Public key discovery</span><code>GET /.well-known/jwks.json</code></div>
+          <div class="pb">Counter-offers and both ledger tips are signed with ed25519. This is the
+            key set a counterparty uses to verify them independently — nothing has to be taken on trust.</div>
+          <div class="proto-out" id="proto-jwks">Loading…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="band" id="history">
   <div class="band-in">
-    <div class="marker"><div class="no">09</div><div class="lb">Transaction<br>history</div></div>
+    <div class="marker"><div class="no">10</div><div class="lb">Transaction<br>history</div></div>
     <div>
       <h2 class="hd">Every session, <em>on the record.</em></h2>
       <p class="lede">Read back from the sessions table, not from memory — so this survives a

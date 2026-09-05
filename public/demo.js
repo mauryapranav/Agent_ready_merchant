@@ -16,24 +16,56 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * waterfall branch. Buyers 1-3 share an intent and product on purpose — the third one
  * falls through to the rail offer because the first two drained the Nike campaign. */
 const ROSTER = [
-  { name: "Ananya", userId: "demo_ananya", sku: "nike-peg-41",
-    intent: "Get me these running shoes under 3700", expect: "brand campaign" },
-  { name: "Rohit", userId: "demo_rohit", sku: "nike-peg-41",
-    intent: "Get me these running shoes under 3700", expect: "brand campaign (drains it)" },
-  { name: "Meera", userId: "demo_meera", sku: "nike-peg-41",
-    intent: "Get me these running shoes under 3700", expect: "campaign gone, falls to rail" },
-  { name: "Vikram", userId: "demo_vikram", sku: "adidas-ultra-24",
-    intent: "Get me these under 3400", expect: "bundle swap" },
-  { name: "Priya", userId: "demo_priya", sku: "adidas-hoodie",
-    intent: "Get me this hoodie under 2000", expect: "merchant pays" },
-  { name: "Arjun", userId: "demo_arjun", sku: "adidas-backpack",
-    intent: "Get me this backpack under 650", expect: "floor holds, no deal" },
-  { name: "Kavya", userId: "demo_kavya", sku: "nike-peg-41",
-    intent: "Get me these under 5000. Extras only from Jockey.", expect: "under cap, attaches" },
-  { name: "Dev", userId: "demo_dev", sku: "adidas-hoodie",
+  // Phase 1 — every funding source in the waterfall, one buyer each.
+  { name: "Ananya", userId: "demo_ananya", sku: "nike-peg-41", phase: "Funding sources",
+    intent: "Get me these running shoes under 3700", expect: "brand campaign pays" },
+  { name: "Rohit", userId: "demo_rohit", sku: "nike-peg-41", phase: "Funding sources",
+    intent: "Get me these running shoes under 3700", expect: "same campaign, drains it" },
+  { name: "Meera", userId: "demo_meera", sku: "nike-peg-41", phase: "Funding sources",
+    intent: "Get me these running shoes under 3700", expect: "campaign dry, bank rail pays" },
+  { name: "Vikram", userId: "demo_vikram", sku: "adidas-ultra-24", phase: "Funding sources",
+    intent: "Get me these under 3400", expect: "swap to a cheaper equal" },
+  // The only step that spends merchant margin. Kept early so a partly-drained daily
+  // release budget cannot silently remove it from the demo.
+  { name: "Priya", userId: "demo_priya", sku: "adidas-hoodie", phase: "Funding sources",
+    intent: "Get me this hoodie under 2000", expect: "MERCHANT PAYS — direct price cut" },
+  { name: "Kavya", userId: "demo_kavya", sku: "nike-peg-41", phase: "Funding sources",
+    intent: "Get me these under 5000. Extras only from Jockey.",
+    expect: "under cap — ATTACHMENT ACCEPTED" },
+  // The mirror of Kavya: an attachment is suggested but falls outside the stated rule, so the
+  // buyer gate refuses the upsell rather than quietly padding the basket.
+  // No extras rule and no brand affinity, so the suggested attachment matches nothing the buyer
+  // declared — the gate refuses the upsell instead of quietly padding the basket.
+  { name: "Rhea", userId: "demo_rhea", sku: "adidas-ultra-24", phase: "Funding sources",
+    intent: "Get me these under 5200",
+    expect: "under cap — ATTACHMENT DECLINED" },
+
+  // Phase 2 — the same engine under adverse conditions.
+  { name: "Ishaan", userId: "demo_ishaan", sku: "nike-peg-41", phase: "Adverse conditions",
+    intent: "Get me these running shoes under 5000", opts: { failRails: ["upi"] },
+    expect: "UPI declines, card succeeds" },
+  { name: "Neha", userId: "demo_neha", sku: "puma-velocity-3", phase: "Adverse conditions",
+    intent: "Get me these under 3500",
+    opts: { failRails: ["upi", "card", "netbanking", "wallet"] },
+    expect: "every rail declines, bounded retries" },
+  { name: "Karan", userId: "demo_karan", sku: "nike-peg-41", phase: "Adverse conditions",
+    intent: "Get me these running shoes under 3700", opts: { offerTtlMs: 0 },
+    expect: "offer expires before acceptance" },
+  { name: "Tara", userId: "demo_tara", sku: "adidas-ultra-24", phase: "Adverse conditions",
+    intent: "Get me these under 4500", opts: { forceDrift: true },
+    expect: "cart tampered after consent" },
+  { name: "Arjun", userId: "demo_arjun", sku: "adidas-backpack", phase: "Adverse conditions",
+    intent: "Get me this backpack under 650", expect: "margin floor holds, no deal" },
+  { name: "Dev", userId: "demo_dev", sku: "adidas-hoodie", phase: "Adverse conditions",
     intent: "Get me this under 1250, can stretch by 800 if it is really Nike",
-    expect: "stretch unmet, hands back" },
+    expect: "stretch condition unmet, hands back" },
 ];
+
+/* 1st, 2nd, 3rd… so the queue reads as an ordered sequence rather than a list. */
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
 
 const MECH = {
   funded_campaign: { label: "Brand campaign", css: "--m-campaign", who: "the brand" },
@@ -74,12 +106,25 @@ function warnIfStale() {
   const drained = state.campaigns.filter((c) => c.remainingBudgetPaise < c.startPaise);
   const spent = state.dailySpent > 0;
   if (!drained.length && !spent) return;
+
   const bits = [];
-  if (drained.length) bits.push(drained.length + " campaign budget(s) already drawn down");
-  if (spent) bits.push(rs(state.dailySpent) + " of the daily discount budget already spent");
+  const lost = [];
+  if (drained.length) {
+    bits.push(drained.length + " campaign budget(s) already drawn down");
+    lost.push("the campaign fall-through");
+  }
+  if (spent) {
+    bits.push(rs(state.dailySpent) + " of the " + rs(state.dailyCap) + " daily discount budget spent");
+  }
+  // The direct price cut is the ONLY step that spends merchant margin, so a nearly-exhausted
+  // release budget silently deletes the one case where the merchant pays.
+  const headroom = state.dailyCap - state.dailySpent;
+  if (headroom < 80000) lost.push("the merchant-pays price cut");
+
   $("#stale-warn").innerHTML = `<div class="stale">
     <b>State left over from a previous run</b> — ${bits.join(" and ")}.
-    The campaign fall-through will not demonstrate correctly. Reset the demo merchant before presenting.
+    ${lost.length ? "This run will not demonstrate " + lost.join(" or ") + "." : ""}
+    Reset the demo merchant before presenting.
   </div>`;
 }
 
@@ -124,10 +169,15 @@ function renderMeters() {
 }
 
 function renderRoster(activeIdx = -1) {
+  let phase = null;
   $("#rost").innerHTML = ROSTER.map((b, i) => {
     const r = state.results[i];
     const st = r ? shortOutcome(r.outcome) : i === activeIdx ? "negotiating" : "queued";
-    return `<div class="b ${i === activeIdx ? "active" : ""} ${r ? "done" : ""}">
+    const head = b.phase !== phase ? `<div class="rost-head">${esc(b.phase)}</div>` : "";
+    phase = b.phase;
+    return head + `<div class="b ${i === activeIdx ? "active" : ""} ${r ? "done" : ""}"
+      title="${esc(b.expect)}">
+      <span class="ord">${ordinal(i + 1)}</span>
       <span class="av">${esc(b.name[0])}</span>
       <span class="nm">${esc(b.name)}</span>
       <span class="st">${st}</span></div>`;
@@ -168,7 +218,7 @@ async function runBuyer(b) {
     const res = await fetch("/api/session", {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ intentText: b.intent, skus: [{ sku: b.sku, qty: 1 }],
-        userId: b.userId, csrfToken: token }),
+        userId: b.userId, ...(b.opts || {}), csrfToken: token }),
     });
     if (res.status === 429) { await sleep(1500); continue; }   // token bucket refills at 1/s
     const data = await readJson(res, b.name);
@@ -343,7 +393,8 @@ function renderBuyerHead(buyer, data) {
     <div class="buyer-head">
       <div class="av-lg">${esc(buyer.name[0])}</div>
       <div style="flex:1">
-        <div class="buyer-name">${esc(buyer.name)}</div>
+        <div class="buyer-name">${esc(buyer.name)}
+          <span class="buyer-ord">${ordinal(ROSTER.indexOf(buyer) + 1)} buyer &middot; ${esc(buyer.phase || "")}</span></div>
         <div class="buyer-intent">&ldquo;${esc(buyer.intent)}&rdquo;</div>
         <div class="chips">${chips.join("")}</div>
       </div>
@@ -393,11 +444,21 @@ async function replay(buyer, data, pace) {
   const label = { PAID: "Rescued", DIRECT_PAID: "Paid straight through",
     ABORTED: "No deal", PAUSED_FOR_HUMAN: "Handed back to the human" }[data.outcome] || data.outcome;
   const narr = findEvent(data.buyerEvents || [], "SETTLEMENT_RESULT");
+  const sig = data.tipSignatures || {};
+  const receipt = data.receipt && data.receipt.text ? data.receipt : null;
   $("#outcome").innerHTML = `<div class="outcome ${data.outcome}">
     <div><div class="ot">${label}</div>
       <div class="od">${esc(narr?.event?.narration || data.reason || "")}</div></div>
     <div class="final">${data.finalTotalPaise != null ? rs(data.finalTotalPaise) : "&mdash;"}</div>
-  </div>`;
+  </div>
+  ${receipt ? `<div class="receipt">
+      <div class="rc-hd">Receipt &middot; written by ${receipt.generated === "llm" ? "the LLM" : "template"}</div>
+      <p>${esc(receipt.text)}</p></div>` : ""}
+  ${sig.buyer ? `<div class="proof">
+      <span class="chip ok"><i></i>both chains verified</span>
+      <span class="mono">buyer tip ${esc(String(sig.buyer.hash).slice(0, 12))}…</span>
+      <span class="mono">ed25519 ${esc(String(sig.buyer.signature).slice(0, 14))}…</span>
+    </div>` : ""}`;
   // In manual mode the advance prompt provides the beat; only pause here when playing out.
   const frame = $("#focus");
   frame.scrollTop = frame.scrollHeight;

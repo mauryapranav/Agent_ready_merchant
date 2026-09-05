@@ -51,7 +51,7 @@ export function decideOnOffer(
       gate: {
         allowed: false,
         trace: {
-          verdict: "REJECT_NO_FLEX_RULE",
+          verdict: "REJECT_EXPIRED",
           capPaise: mandate.hardCapPaise,
           proposedPaise: offer.newTotalPaise,
           stretchUsedPaise: Math.max(0, offer.newTotalPaise - mandate.hardCapPaise),
