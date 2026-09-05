@@ -74,7 +74,19 @@
   .btn:hover{filter:brightness(1.07)}
   .btn.line{background:transparent;color:var(--ink);border:1px solid var(--rule-hard)}
   .btn.line:hover{border-color:var(--accent);color:var(--accent);filter:none}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn:disabled{opacity:.4;cursor:not-allowed;animation:none;box-shadow:none}
+  /* The run is the point of the page: the primary CTA breathes until it is used. */
+  .btn.glow{position:relative;box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 60%,transparent);
+    animation:pulse 2.6s ease-out infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}
+    70%{box-shadow:0 0 0 12px color-mix(in srgb,var(--accent) 0%,transparent)}
+    100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent)}}
+  @media(prefers-reduced-motion:reduce){.btn.glow{animation:none;
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 26%,transparent)}}
+  .nav-cta{display:flex;align-items:center;gap:10px;padding-left:18px;margin-left:4px;
+    border-left:1px solid var(--rule)}
+  .nav-cta .btn{padding:10px 18px;font-size:13px}
   .icon-btn{background:transparent;border:1px solid var(--rule-hard);color:var(--ink);
     width:31px;height:31px;display:grid;place-items:center;border-radius:3px}
   .speed{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;white-space:nowrap}
@@ -367,6 +379,41 @@
   @media(max-width:760px){.two{grid-template-columns:1fr;gap:22px}}
   .hidden{display:none !important}
 
+  /* ---- transaction history ---- */
+  .hist{border-top:1px solid var(--rule-hard);margin-top:18px;max-height:52vh;overflow:auto}
+  .hist table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .hist thead th{position:sticky;top:0;background:var(--sunk);text-align:left;
+    font-family:-apple-system,sans-serif;font-size:10px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted);font-weight:600;padding:9px 10px;
+    border-bottom:1px solid var(--rule-hard);z-index:1}
+  .hist td{padding:9px 10px;border-bottom:1px solid var(--rule);
+    font-family:ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hist td.wide{font-family:-apple-system,sans-serif;white-space:normal;min-width:150px}
+  .hist tbody tr:hover{background:var(--sunk)}
+  .hist .pillo{display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:2px;
+    font-family:-apple-system,sans-serif;font-size:10.5px;font-weight:700;border:1px solid}
+  .hist .pillo i{width:6px;height:6px;border-radius:50%}
+  .hist .PAID,.hist .DIRECT_PAID{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--rule))}
+  .hist .PAID i,.hist .DIRECT_PAID i{background:var(--ok)}
+  .hist .ABORTED{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,var(--rule))}
+  .hist .ABORTED i{background:var(--bad)}
+  .hist .PAUSED_FOR_HUMAN{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,var(--rule))}
+  .hist .PAUSED_FOR_HUMAN i{background:var(--warn)}
+  .hist .mech{display:inline-flex;align-items:center;gap:6px}
+  .hist .mech .sq{width:8px;height:8px;border-radius:1px}
+  .hist-sum{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule-hard);
+    border-radius:4px;background:var(--card);overflow:hidden;margin-top:16px}
+  @media(max-width:760px){.hist-sum{grid-template-columns:repeat(2,1fr)}}
+  .hist-sum > div{padding:13px 16px;border-right:1px solid var(--rule)}
+  .hist-sum > div:last-child{border-right:0}
+  .hist-sum .k{font-family:-apple-system,sans-serif;font-size:10.5px;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.07em}
+  .hist-sum .v{font-family:ui-monospace,monospace;font-size:18px;font-weight:600;margin-top:3px}
+  /* Beat replay reused inside the try-it panel */
+  .try-beats{max-height:300px;overflow:auto;border:1px solid var(--rule);border-radius:3px;
+    padding:4px 12px;margin-top:12px;background:var(--card)}
+  .try-beats:empty{display:none}
+
   /* ---- analytics: a full-screen view the run hands off to ---- */
   .analytics{display:none}
   body.analytics-open{overflow:hidden}
@@ -414,11 +461,14 @@
       <a href="#problem">Problem</a><a href="#waterfall">Waterfall</a><a href="#live">Live run</a>
       <a href="#refusal">Refusal</a><a href="#evidence">Evidence</a><a href="#governance">Governance</a>
       <a href="#try">Try it</a><a href="#console">Console</a>
+      <a href="#history">History</a>
       <a href="#" id="open-analytics" style="color:var(--accent)">Analytics</a>
     </div>
-    <span class="speed" id="speed"></span>
-    <button class="btn" id="run">Open the store</button>
-    <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
+    <div class="nav-cta">
+      <span class="speed" id="speed"></span>
+      <button class="btn glow" id="run">&#9654;&nbsp; Open the store</button>
+      <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
+    </div>
   </div>
 </nav>
 
@@ -431,7 +481,7 @@
          the money. Every rupee moves through deterministic gates the agent cannot argue with —
          and the merchant spends other people's budget before its own.</p>
       <div class="cta-row">
-        <button class="btn" id="run-hero">Watch 8 AI buyers negotiate</button>
+        <button class="btn glow" id="run-hero">&#9654;&nbsp; Watch 8 AI buyers negotiate</button>
         <a class="btn line" href="#waterfall" style="text-decoration:none;display:inline-block">Read the mechanism</a>
       </div>
     </div>
@@ -641,6 +691,7 @@
         <div>
           <label class="fl">Cart</label>
           <div class="skus" id="sku-list"></div>
+          <div class="try-beats" id="try-beats"></div>
           <div id="try-result" style="margin-top:13px"></div>
         </div>
       </div>
@@ -665,6 +716,19 @@
           <div id="scn-result" style="font-size:13px;color:var(--muted)">Pick a scenario to run it.</div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="band" id="history">
+  <div class="band-in">
+    <div class="marker"><div class="no">09</div><div class="lb">Transaction<br>history</div></div>
+    <div>
+      <h2 class="hd">Every session, <em>on the record.</em></h2>
+      <p class="lede">Read back from the sessions table, not from memory — so this survives a
+        restart and shows what actually committed. Refusals are kept alongside settlements.</p>
+      <div class="hist-sum" id="hist-sum"></div>
+      <div class="hist" id="hist-body"></div>
     </div>
   </div>
 </div>

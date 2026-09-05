@@ -22,6 +22,7 @@ import {
   loadSwapAlternatives,
   getReleaseLedger,
   addReleaseLedgerEntry,
+  loadRecentSessions,
   persistSession,
   persistAuditEvents,
   reserveInventory,
@@ -438,6 +439,14 @@ async function handleRequest(
         settle_negotiation: { rescue_eligible: true, attachment_eligible: p.category !== "electronics" },
       })),
     });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/history") {
+    const limitRaw = Number(url.searchParams.get("limit") ?? 50);
+    const limit = Number.isFinite(limitRaw) ? Math.min(200, Math.max(1, Math.trunc(limitRaw))) : 50;
+    const sessions = await loadRecentSessions(limit);
+    send(res, 200, { sessions });
     return;
   }
 

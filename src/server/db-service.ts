@@ -267,6 +267,41 @@ export async function persistAuditEvents(
   }
 }
 
+/**
+ * Recent settled sessions for the transaction history view. Reads the persisted table rather
+ * than the in-memory store, so history survives a restart and reflects what actually committed.
+ */
+export async function loadRecentSessions(limit = 50): Promise<Array<Record<string, unknown>>> {
+  const result = await query<any>(
+    `SELECT session_id, user_id_hash, cart_items, cart_total_paise, hard_cap_paise,
+            status, outcome, final_total_paise, paid_via, razorpay_order_id,
+            offer_snapshot, created_at
+     FROM sessions
+     WHERE merchant_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [MERCHANT_ID, limit]
+  );
+  return result.rows.map((row) => {
+    const r = mapKeys(row);
+    const offer = (r.offerSnapshot as { offer?: Record<string, any> } | null)?.offer ?? null;
+    return {
+      sessionId: r.sessionId,
+      at: r.createdAt,
+      items: r.cartItems,
+      cartTotalPaise: Number(r.cartTotalPaise),
+      capPaise: Number(r.hardCapPaise),
+      outcome: r.outcome ?? String(r.status ?? "").toUpperCase(),
+      finalTotalPaise: r.finalTotalPaise === null ? null : Number(r.finalTotalPaise),
+      paidVia: r.paidVia ?? null,
+      razorpayOrderId: r.razorpayOrderId ?? null,
+      mechanismStep: offer?.mechanism?.step ?? null,
+      fundedBy: offer?.fundedBy ?? null,
+      merchantCostPaise: offer ? Number(offer.merchantCostPaise ?? 0) : 0,
+    };
+  });
+}
+
 export async function getInventory(): Promise<Record<string, { total: number; reserved: number }>> {
   const result = await query<any>(
     `SELECT sku, total_qty, reserved_qty FROM inventory WHERE merchant_id = $1`,

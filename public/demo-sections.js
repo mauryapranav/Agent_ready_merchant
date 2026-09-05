@@ -251,10 +251,19 @@ async function tryRun() {
     return;
   }
   btn.disabled = true;
+  q("#try-beats").innerHTML = "";
   q("#try-result").innerHTML = `<p style="font-size:13px;color:var(--muted)">Negotiating…</p>`;
   try {
     const d = await postSession({ intentText: q("#try-intent").value, skus }, "your session");
+    q("#try-result").innerHTML = "";
+    // Same beat builder the scripted run uses, so this shows the whole process, not just a verdict.
+    if (window.renderSessionBeats) {
+      await window.renderSessionBeats(
+        { name: "You", sku: skus[0].sku, intent: q("#try-intent").value },
+        d, q("#try-beats"), 320);
+    }
     q("#try-result").innerHTML = outcomeBlock(d);
+    window.refreshHistory?.();
   } catch (e) {
     q("#try-result").innerHTML = `<div class="outcome ABORTED"><div><div class="ot">Run failed</div>
       <div class="od">${escH(e.message)}</div></div></div>`;
@@ -301,6 +310,7 @@ async function runScenario(i, el) {
     const { n, expect, ...body } = s;
     const d = await postSession(body, s.n);
     el.classList.add(d.outcome === "ABORTED" || d.outcome === "PAUSED_FOR_HUMAN" ? "bad" : "ok");
+    window.refreshHistory?.();
     q("#scn-result").innerHTML =
       `<div style="font-weight:650;margin-bottom:4px;font-family:-apple-system,sans-serif">${escH(s.n)}</div>
        <div style="font-size:12px;color:var(--muted);margin-bottom:11px">Expected: ${escH(s.expect)}</div>
@@ -331,3 +341,74 @@ document.getElementById("open-analytics")?.addEventListener("click", (e) => {
   e.preventDefault();
   if (window.renderReport) window.renderReport(window.__settleState || { results: [], bySku: {} });
 });
+
+
+/* ---------------- transaction history ---------------- */
+
+const HIST_MECH = {
+  funded_campaign: ["Brand campaign", "--m-campaign"],
+  rail_offer: ["Bank rail offer", "--m-rail"],
+  bundle_swap: ["Bundle swap", "--m-swap"],
+  price_cut: ["Direct price cut", "--m-cut"],
+};
+const HIST_OUTCOME = { PAID: "Rescued", DIRECT_PAID: "Paid directly",
+  ABORTED: "No deal", PAUSED_FOR_HUMAN: "Handed back" };
+
+function itemsLabel(items) {
+  if (!Array.isArray(items)) return "—";
+  return items.map((i) => (catalogCache.find((p) => p.sku === i.sku)?.title || i.sku) +
+    (i.qty > 1 ? " x" + i.qty : "")).join(", ");
+}
+
+async function loadHistory() {
+  const body = q("#hist-body"), sum = q("#hist-sum");
+  if (!body) return;
+  try {
+    const d = await readJsonSafe(await fetch("/api/history?limit=100"), "history");
+    const rows = d.sessions || [];
+    if (!rows.length) {
+      body.innerHTML = `<p class="sub" style="padding:16px 2px">No sessions recorded yet.
+        Run the live demo or negotiate your own mandate above.</p>`;
+      sum.innerHTML = "";
+      return;
+    }
+    const settled = (r) => r.outcome === "PAID" || r.outcome === "DIRECT_PAID";
+    const closed = rows.filter(settled);
+    const revenue = closed.reduce((a, r) => a + (r.finalTotalPaise || 0), 0);
+    // offer_snapshot records what was OFFERED. Margin is only actually spent when the buyer
+    // accepted and the charge succeeded, so a refused offer must not count against the merchant.
+    const ownCost = closed.reduce((a, r) => a + (r.merchantCostPaise || 0), 0);
+    sum.innerHTML = [
+      ["Sessions recorded", rows.length],
+      ["Settled", closed.length + " of " + rows.length],
+      ["Revenue captured", inr(revenue)],
+      ["Merchant's own money", inr(ownCost)],
+    ].map(([k, v]) => `<div><div class="k">${escH(k)}</div><div class="v">${escH(v)}</div></div>`).join("");
+
+    body.innerHTML = `<table>
+      <thead><tr><th>When</th><th>Items</th><th>Cart</th><th>Cap</th><th>Outcome</th>
+        <th>Funding</th><th>Own cost</th><th>Settled</th><th>Rail</th></tr></thead>
+      <tbody>${rows.map((r) => {
+        const mech = r.mechanismStep ? HIST_MECH[r.mechanismStep] : null;
+        const offeredOnly = !settled(r) && r.mechanismStep;
+        const when = new Date(r.at);
+        return `<tr>
+          <td>${when.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</td>
+          <td class="wide">${escH(itemsLabel(r.items))}</td>
+          <td>${inr(r.cartTotalPaise)}</td>
+          <td>${inr(r.capPaise)}</td>
+          <td><span class="pillo ${escH(r.outcome)}"><i></i>${escH(HIST_OUTCOME[r.outcome] || r.outcome)}</span></td>
+          <td>${mech ? `<span class="mech"><span class="sq" style="background:var(${mech[1]})"></span>${escH(mech[0])}${offeredOnly ? " (offered)" : ""}</span>` : "—"}</td>
+          <td>${settled(r) ? (r.merchantCostPaise ? inr(r.merchantCostPaise) : "₹0")
+            : `<span style="color:var(--muted)">not spent</span>`}</td>
+          <td>${r.finalTotalPaise != null ? inr(r.finalTotalPaise) : "—"}</td>
+          <td>${escH(r.paidVia || "—")}</td>
+        </tr>`;
+      }).join("")}</tbody></table>`;
+  } catch (e) {
+    body.innerHTML = `<p class="sub" style="padding:16px 2px">History unavailable — ${escH(e.message)}</p>`;
+  }
+}
+
+window.refreshHistory = loadHistory;
+loadCatalogInto().then(loadHistory).catch(loadHistory);
