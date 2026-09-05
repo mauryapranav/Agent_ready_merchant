@@ -1,15 +1,65 @@
-/* Narrative sections around the live run: hero figures, the waterfall explainer, the arm
- * comparison, a free-text mandate box, and the adversarial scenario suite folded in from the
- * old merchant console. Everything here calls the same /api endpoints as the main demo. */
+/* Narrative sections around the live run. Everything shares one visual unit — a ruled row with
+ * a label on the left and a monospace figure on the right — so the hero, the waterfall, the
+ * comparison and the metrics all read as parts of the same ledger rather than separate widgets. */
 
 const q = (s) => document.querySelector(s);
 const escH = (v) => String(v ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const inr = (p) => "₹" + Number(Math.round(p) / 100).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-/* ---------------- hero figures, from the seeded simulation ---------------- */
+const STAGES = [
+  { step: "funded_campaign", label: "Brand campaign", css: "--m-campaign", short: "₹0",
+    who: "Paid for by the brand", cost: 0,
+    blurb: `An active, brand-funded campaign large enough to close the gap is applied first. The
+      merchant contributes nothing — the budget belongs to somebody else, and it depletes as it is
+      drawn on. When it runs dry the waterfall moves down a step rather than inventing money.`,
+    kv: [["Merchant cost", "₹0"], ["Funding source", "Brand marketing"],
+      ["Depletes", "Yes, shared"], ["Gate effect", "Floor unaffected"]] },
+  { step: "rail_offer", label: "Bank rail offer", css: "--m-rail", short: "₹0",
+    who: "Paid for by a bank or card network", cost: 0,
+    blurb: `Card and UPI offers are underwritten by banks and networks, not the merchant. Settle
+      only proposes a rail the buyer's mandate actually permits, so a discount never arrives
+      attached to a payment method they refused.`,
+    kv: [["Merchant cost", "₹0"], ["Funding source", "Bank / network"],
+      ["Constraint", "Allowed rails only"], ["Gate effect", "Floor unaffected"]] },
+  { step: "bundle_swap", label: "Bundle swap", css: "--m-swap", short: "~₹0",
+    who: "Costs nobody — a cheaper equivalent", cost: 15,
+    blurb: `Rather than discount the item, offer a comparable one already inside the budget. Margin
+      is usually preserved or improved, and the buyer's own gate decides whether the substitute is
+      acceptable against their stated preferences.`,
+    kv: [["Merchant cost", "Usually ₹0"], ["Funding source", "None — different SKU"],
+      ["Constraint", "Buyer must accept"], ["Gate effect", "Margin recalculated"]] },
+  { step: "price_cut", label: "Direct price cut", css: "--m-cut", short: "full",
+    who: "Paid for by the merchant", cost: 100,
+    blurb: `The last resort, and the only step that spends the merchant's own margin. Sized to the
+      minimum that closes the gap, charged against a daily release budget, and refused outright if
+      it would drop the sale below the floor.`,
+    kv: [["Merchant cost", "The full discount"], ["Funding source", "Merchant margin"],
+      ["Constraint", "Daily budget + cooldown"], ["Gate effect", "REJECT_FLOOR if under"]] },
+];
 
-function heroStats() {
+/* ---------------- hero policy ledger + figures ---------------- */
+
+async function heroLedger() {
+  try {
+    const res = await fetch("/api/catalog");
+    const d = await res.json();
+    const p = d.policy;
+    if (p) {
+      q("#hp-floor").textContent = p.floorMarginPct + "%";
+      q("#hp-budget").textContent = inr(p.dailyReleaseBudgetPaise) + " / day";
+      q("#hp-cool").textContent = p.cooldownMinutes + " min";
+    }
+    q("#hp-waterfall").innerHTML = STAGES.map((s, i) => `
+      <div class="lrow step">
+        <span class="k"><span class="ix">0${i + 1}</span>
+          <span class="sq" style="background:var(${s.css})"></span>${escH(s.label)}</span>
+        <span class="v">${escH(s.short)}</span>
+      </div>`).join("");
+  } catch { /* the live section reports connection problems already */ }
+}
+
+function heroFigures() {
   const M = window.METRICS;
   if (!M?.armsPrimary) return;
   const settle = M.armsPrimary.find((a) => a.arm === "settle");
@@ -19,79 +69,49 @@ function heroStats() {
     q("#hs-own").textContent = inr(settle.ownCostDiscountPaise);
   }
   if (settle && flat && flat.ownCostDiscountPaise > 0) {
-    const saved = Math.round((1 - settle.ownCostDiscountPaise / flat.ownCostDiscountPaise) * 100);
-    q("#hs-vs").textContent = saved + "% less";
+    q("#hs-vs").textContent =
+      Math.round((1 - settle.ownCostDiscountPaise / flat.ownCostDiscountPaise) * 100) + "%";
   }
 }
 
-/* ---------------- waterfall explainer ---------------- */
-
-const STAGES = [
-  { step: "funded_campaign", label: "Brand campaign", css: "--m-campaign", who: "Paid for by the brand",
-    blurb: `An active, brand-funded campaign large enough to close the gap is applied first. The
-      merchant's contribution is zero — the budget belongs to someone else, and it depletes as it
-      is drawn on. When it runs dry the waterfall moves down a step rather than inventing money.`,
-    cost: 0, kv: [["Merchant cost", "₹0"], ["Funding source", "Brand marketing budget"],
-      ["Depletes", "Yes — shared across buyers"], ["Gate check", "Floor margin unaffected"]] },
-  { step: "rail_offer", label: "Bank rail offer", css: "--m-rail", who: "Paid for by a bank or card network",
-    blurb: `Card and UPI offers are underwritten by banks and networks, not the merchant. Settle
-      only proposes a rail the buyer's mandate actually permits, so the discount cannot arrive
-      attached to a payment method they refused.`,
-    cost: 0, kv: [["Merchant cost", "₹0"], ["Funding source", "Bank / card network"],
-      ["Constraint", "Must be an allowed rail"], ["Gate check", "Floor margin unaffected"]] },
-  { step: "bundle_swap", label: "Bundle swap", css: "--m-swap", who: "Costs nobody — a cheaper equivalent",
-    blurb: `Rather than discount the item, offer a comparable one that already fits the budget.
-      Margin is usually preserved or improved, and the buyer's own gate decides whether the
-      substitute is acceptable against their stated preferences.`,
-    cost: 15, kv: [["Merchant cost", "Usually ₹0"], ["Funding source", "None — different SKU"],
-      ["Constraint", "Buyer must accept the substitute"], ["Gate check", "Margin recalculated on the new item"]] },
-  { step: "price_cut", label: "Direct price cut", css: "--m-cut", who: "Paid for by the merchant",
-    blurb: `The last resort, and the only step that spends the merchant's own margin. It is sized
-      to the minimum that closes the gap, charged against a daily release budget, and refused
-      outright if it would drop the sale below the floor margin.`,
-    cost: 100, kv: [["Merchant cost", "The full discount"], ["Funding source", "Merchant margin"],
-      ["Constraint", "Daily budget + per-buyer cooldown"], ["Gate check", "REJECT_FLOOR if under the floor"]] },
-];
+/* ---------------- waterfall: vertical rail beside a detail panel ---------------- */
 
 function renderPipeline(active = 0) {
   q("#pipe-rail").innerHTML = STAGES.map((s, i) => `
-    <button class="pipe-tab" role="tab" aria-selected="${i === active}" data-i="${i}">
+    <button role="tab" aria-selected="${i === active}" data-i="${i}">
       <span class="ix">0${i + 1}</span>
-      <span class="sq" style="background:var(${s.css})"></span>${escH(s.label)}
+      <span class="sq" style="background:var(${s.css})"></span>
+      <span class="nm">${escH(s.label)}</span>
+      <span class="cost">${escH(s.short)}</span>
     </button>`).join("");
 
   const s = STAGES[active];
   q("#pipe-body").innerHTML = `
-    <div>
-      <h3>${escH(s.label)}</h3>
-      <div class="who">${escH(s.who)}</div>
-      <p>${s.blurb}</p>
-      ${s.kv.map(([k, v]) => `<div class="kv"><span>${escH(k)}</span><span>${escH(v)}</span></div>`).join("")}
-    </div>
-    <div class="pipe-vis">
-      <div class="cost-note">Share of the discount that comes out of merchant margin</div>
-      <div class="costbar"><i style="width:${Math.max(3, s.cost)}%;background:var(${s.css})"></i></div>
-      <div class="cost-note">${s.cost === 0 ? "None — externally funded."
-        : s.cost === 100 ? "All of it. This is why it is last."
-        : "Little to none, but the buyer has to agree to the swap."}</div>
-      <div class="cost-note" style="margin-top:8px;padding-top:10px;border-top:1px solid var(--line)">
-        Stage ${active + 1} of ${STAGES.length} &middot; tried in order, stops at the first the gate approves
-      </div>
+    <h3>${escH(s.label)}</h3>
+    <div class="who">${escH(s.who)}</div>
+    <p>${s.blurb}</p>
+    <div class="ledger">
+      <div class="ledger-hd"><span>Stage ${active + 1} of ${STAGES.length}</span>
+        <span>${s.cost === 0 ? "externally funded" : s.cost === 100 ? "merchant funded" : "margin neutral"}</span></div>
+      ${s.kv.map(([k, v]) => `<div class="lrow"><span class="k">${escH(k)}</span>
+        <span class="v">${escH(v)}</span></div>`).join("")}
+      <div class="lrow"><span class="k">Share out of merchant margin</span>
+        <span class="v" style="flex:1;max-width:120px">
+          <span class="track" style="display:block"><span class="fill"
+            style="display:block;width:${Math.max(3, s.cost)}%;background:var(${s.css})"></span></span>
+        </span></div>
     </div>`;
 
-  q("#pipe-rail").querySelectorAll(".pipe-tab").forEach((el) =>
+  q("#pipe-rail").querySelectorAll("button").forEach((el) =>
     el.addEventListener("click", () => renderPipeline(Number(el.dataset.i))));
 }
 
-/* ---------------- arm comparison ---------------- */
+/* ---------------- arm comparison as ledger rows ---------------- */
 
 const ARMS = {
-  no_rescue: { name: "Baseline", title: "No rescue at all",
-    note: "Over-budget carts are simply lost. Zero discount spend, and the revenue walks." },
-  flat_10_pct: { name: "Blanket discount", title: "Flat 10% off everything",
-    note: "The reflex answer. Converts well, but every rupee of it comes out of merchant margin." },
-  settle: { name: "Settle", title: "Policy-bound waterfall",
-    note: "Externally-funded sources first, own margin last, and only above the floor." },
+  no_rescue: ["Baseline", "Over-budget carts are simply lost"],
+  flat_10_pct: ["Blanket 10% off", "Converts, but every rupee is merchant margin"],
+  settle: ["Settle", "External funding first, own margin last"],
 };
 
 function renderArms() {
@@ -100,24 +120,23 @@ function renderArms() {
     q("#arms").innerHTML = `<p class="lede">Run <code>npm run metrics</code> to generate these figures.</p>`;
     return;
   }
-  q("#arms").innerHTML = M.armsPrimary.map((r) => {
-    const meta = ARMS[r.arm] || { name: r.arm, title: r.arm, note: "" };
-    const win = r.arm === "settle";
-    return `<div class="arm ${win ? "win" : ""}">
-      ${win ? `<span class="tag">Best margin outcome</span>` : ""}
-      <div class="nm">${escH(meta.name)}</div>
-      <h3>${escH(meta.title)}</h3>
-      <div class="hero-n">${r.conversionPct}%</div>
-      <div class="hero-l">of ${M.populationSize} carts closed</div>
-      <div class="row"><span>Revenue</span><span>${inr(r.revenuePaise)}</span></div>
-      <div class="row"><span>Own-cost discount</span><span>${inr(r.ownCostDiscountPaise)}</span></div>
-      <div class="row"><span>Gross profit</span><span>${inr(r.grossProfitPaise)}</span></div>
-      <p style="font-size:12px;color:var(--muted);margin:13px 0 0">${escH(meta.note)}</p>
-    </div>`;
-  }).join("");
+  q("#arms").innerHTML = `
+    <div class="hrow"><span>Approach</span><span style="text-align:right">Closed</span>
+      <span style="text-align:right">Conversion</span><span style="text-align:right">Own-cost discount</span>
+      <span style="text-align:right">Gross profit</span></div>
+    ${M.armsPrimary.map((r) => {
+      const [nm, note] = ARMS[r.arm] || [r.arm, ""];
+      return `<div class="drow ${r.arm === "settle" ? "win" : ""}">
+        <div class="nm">${escH(nm)}<small>${escH(note)}</small></div>
+        <div class="cell">${r.closes}/${M.populationSize}</div>
+        <div class="cell big">${r.conversionPct}%</div>
+        <div class="cell">${inr(r.ownCostDiscountPaise)}</div>
+        <div class="cell">${inr(r.grossProfitPaise)}</div>
+      </div>`;
+    }).join("")}`;
 }
 
-/* ---------------- shared session helper ---------------- */
+/* ---------------- shared session helpers ---------------- */
 
 async function readJsonSafe(res, label) {
   const text = await res.text();
@@ -150,10 +169,12 @@ function outcomeBlock(d) {
         <div class="od">${escH(narr?.event?.narration || d.reason || "")}</div></div>
       <div class="final">${d.finalTotalPaise != null ? inr(d.finalTotalPaise) : "&mdash;"}</div>
     </div>
-    ${trace ? `<div style="font-size:12px;color:var(--muted);margin-top:9px">${trace}</div>` : ""}
-    <div class="chips" style="margin-top:9px">
+    ${trace ? `<div style="font-size:12px;color:var(--muted);margin-top:10px;
+      font-family:ui-monospace,monospace">${trace}</div>` : ""}
+    <div class="chips" style="margin-top:10px">
       <span class="chip">${d.parsedBy === "llm" ? "LLM parsed" : "deterministic parse"}</span>
-      ${d.verified ? `<span class="chip ok"><i></i>ledger verified</span>` : `<span class="chip bad"><i></i>chain broken</span>`}
+      ${d.verified ? `<span class="chip ok"><i></i>ledger verified</span>`
+        : `<span class="chip bad"><i></i>chain broken</span>`}
       ${d.paidVia ? `<span class="chip">paid via ${escH(d.paidVia)}</span>` : ""}
     </div>`;
 }
@@ -168,7 +189,7 @@ async function loadCatalogInto() {
   q("#sku-list").innerHTML = catalogCache.map((p) => `
     <label><input type="checkbox" name="try-sku" value="${escH(p.sku)}">
       <span>${escH(p.title)}</span>
-      <span style="color:var(--muted);margin-left:auto">${inr(p.pricePaise)}</span></label>`).join("");
+      <span class="mono" style="color:var(--muted);margin-left:auto">${inr(p.pricePaise)}</span></label>`).join("");
 }
 
 /* Tiered: a stated brand or category outranks price, which only breaks ties. */
@@ -252,35 +273,36 @@ async function tryRun() {
   } finally { btn.disabled = false; }
 }
 
-/* ---------------- adversarial scenarios (from the merchant console) ---------------- */
+/* ---------------- adversarial scenarios ---------------- */
 
 const SCENARIOS = [
   { n: "UPI rail fails, card succeeds", intent: "Get me running shoes under 5000",
-    skus: [{ sku: "nike-peg-41", qty: 1 }], failRails: ["upi"], expect: "PAID via another rail" },
+    skus: [{ sku: "nike-peg-41", qty: 1 }], failRails: ["upi"], expect: "paid via another rail" },
   { n: "Every rail declines", intent: "Get me running shoes under 5000",
     skus: [{ sku: "nike-peg-41", qty: 1 }], failRails: ["upi", "card", "netbanking", "wallet"],
-    expect: "ABORTED, bounded retries" },
+    expect: "bounded retries, abort" },
   { n: "Offer expires instantly", intent: "Get me running shoes under 3700",
-    skus: [{ sku: "nike-peg-41", qty: 1 }], offerTtlMs: 0, expect: "ABORTED, offer expired" },
+    skus: [{ sku: "nike-peg-41", qty: 1 }], offerTtlMs: 0, expect: "offer expired" },
   { n: "Cart tampered after consent", intent: "Get me running shoes under 5000",
-    skus: [{ sku: "nike-peg-41", qty: 1 }], forceDrift: true, expect: "ABORTED, cart drift" },
+    skus: [{ sku: "nike-peg-41", qty: 1 }], forceDrift: true, expect: "cart drift" },
   { n: "Floor margin holds", intent: "Get me running shoes under 3000",
     skus: [{ sku: "nike-peg-41", qty: 1 }], policyOverrides: { floorMarginPct: 30 },
-    expect: "No offer — would breach the floor" },
+    expect: "would breach floor" },
   { n: "Daily discount budget exhausted", intent: "Get me running shoes under 3700",
     skus: [{ sku: "nike-peg-41", qty: 1 }], policyOverrides: { dailyReleaseBudgetPaise: 1 },
-    expect: "No offer — budget spent" },
-  { n: "Campaigns disabled, own money only", intent: "Get me running shoes under 3700",
+    expect: "budget spent" },
+  { n: "Campaigns off, own money only", intent: "Get me running shoes under 3700",
     skus: [{ sku: "nike-peg-41", qty: 1 }], waterfallDisabled: ["funded_campaign", "rail_offer"],
-    expect: "Falls to swap or price cut" },
+    expect: "swap or price cut" },
   { n: "Attachment respects the buyer's rule", intent: "Get me these under 5000. Extras only from Jockey.",
-    skus: [{ sku: "nike-peg-41", qty: 1 }], expect: "DIRECT_PAID with a Jockey attachment" },
+    skus: [{ sku: "nike-peg-41", qty: 1 }], expect: "Jockey attachment" },
 ];
 
 function renderScenarios() {
   q("#scn-list").innerHTML = SCENARIOS.map((s, i) => `
     <div class="s" data-i="${i}"><span>${escH(s.n)}</span><span class="r">${escH(s.expect)}</span></div>`).join("");
-  q("#scn-list").querySelectorAll(".s").forEach((el) => el.addEventListener("click", () => runScenario(Number(el.dataset.i), el)));
+  q("#scn-list").querySelectorAll(".s").forEach((el) =>
+    el.addEventListener("click", () => runScenario(Number(el.dataset.i), el)));
 }
 
 async function runScenario(i, el) {
@@ -291,9 +313,10 @@ async function runScenario(i, el) {
     const { n, expect, ...body } = s;
     const d = await postSession(body, s.n);
     el.classList.add(d.outcome === "ABORTED" || d.outcome === "PAUSED_FOR_HUMAN" ? "bad" : "ok");
-    q("#scn-result").innerHTML = `<div style="font-weight:650;margin-bottom:8px">${escH(s.n)}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Expected: ${escH(s.expect)}</div>
-      ${outcomeBlock(d)}`;
+    q("#scn-result").innerHTML =
+      `<div style="font-weight:650;margin-bottom:4px;font-family:-apple-system,sans-serif">${escH(s.n)}</div>
+       <div style="font-size:12px;color:var(--muted);margin-bottom:11px">Expected: ${escH(s.expect)}</div>
+       ${outcomeBlock(d)}`;
   } catch (e) {
     el.classList.add("bad");
     q("#scn-result").innerHTML = `<div class="outcome ABORTED"><div><div class="ot">Scenario failed</div>
@@ -303,12 +326,13 @@ async function runScenario(i, el) {
 
 /* ---------------- init ---------------- */
 
-heroStats();
+heroFigures();
+heroLedger();
 renderPipeline(0);
 renderArms();
 renderScenarios();
 loadCatalogInto().catch(() => {
-  q("#sku-list").innerHTML = `<p style="font-size:12px;color:var(--muted)">Catalog unavailable.</p>`;
+  q("#sku-list").innerHTML = `<p style="font-size:12px;color:var(--muted);padding:10px">Catalog unavailable.</p>`;
 });
 q("#try-parse")?.addEventListener("click", tryParse);
 q("#try-run")?.addEventListener("click", tryRun);

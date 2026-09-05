@@ -45,9 +45,10 @@ function liveAggregate(results) {
   return a;
 }
 
+/* Same cell as the hero figures band, so the run summary reads as part of the page. */
 function tile(value, label, note) {
-  return `<div class="tile"><div class="tv">${value}</div><div class="tl">${label}</div>
-    ${note ? `<div class="tn">${note}</div>` : ""}</div>`;
+  return `<div class="fig"><div class="v">${value}</div>
+    <div class="l">${label}${note ? " &middot; " + note : ""}</div></div>`;
 }
 
 /* Horizontal bars. One measure per chart, direct-labelled, so nothing depends on colour alone. */
@@ -122,12 +123,12 @@ window.renderReport = function renderReport(state) {
   // live run stays on screen and the narrative order is preserved.
   const root = document.getElementById("report-root");
   root.innerHTML = `
-  <div class="report">
-    <h1>What just happened</h1>
-    <p class="lede">${live.n} autonomous buyers negotiated against a live policy, a real database
-      and real payment rails. Every number below came out of the audit ledger.</p>
+  <div class="report block">
+    <h3>What just happened</h3>
+    <p class="sub">${live.n} autonomous buyers negotiated against a live policy, a real database
+      and real payment rails. Every figure came out of the audit ledger.</p>
 
-    <div class="tiles">
+    <div class="figs" style="border-radius:3px">
       ${tile(live.conversionPct + "%", "Carts closed", `${live.closes} of ${live.n}`)}
       ${tile(money(live.revenuePaise), "Revenue captured",
         live.rescued + " rescued from abandonment")}
@@ -154,17 +155,12 @@ window.renderReport = function renderReport(state) {
       ${popHtml}
     </div>
 
-    <button class="ghost" id="back">Back to the control room</button>
-  </div>
-  <div id="tip" class="tip"></div>`;
+  </div>`;
 
-  document.getElementById("back").addEventListener("click", () => {
-    root.innerHTML = "";
-    document.getElementById("stage").classList.remove("hidden");
-  });
 
   // Hover/focus tooltip — bigger hit target than the mark itself.
   const tip = document.getElementById("tip");
+  if (!tip) return;
   root.querySelectorAll("[data-tip]").forEach((el) => {
     const show = (e) => {
       tip.textContent = el.dataset.tip;
