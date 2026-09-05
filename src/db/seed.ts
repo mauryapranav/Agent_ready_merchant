@@ -92,9 +92,11 @@ async function main() {
   const validTo = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const campaigns = [
-    { id: "camp_nike_summer", label: "Nike Summer Sale", flatOff: 50000, minCart: 300000, fundedBy: "brand", budget: 1000000 },
-    { id: "camp_adidas_monsoon", label: "Adidas Monsoon Offer", flatOff: 40000, minCart: 250000, fundedBy: "brand", budget: 800000 },
-    { id: "camp_merchant_diwali", label: "Diwali Marketing Campaign", flatOff: 30000, minCart: 200000, fundedBy: "merchant_marketing", budget: 500000 },
+    // Budgets are deliberately sized to two draws each so the funded-campaign step visibly runs
+    // dry during a short demo run and the waterfall falls through to the next funding source.
+    { id: "camp_nike_summer", label: "Nike Summer Sale", flatOff: 50000, minCart: 300000, fundedBy: "brand", budget: 100000 },
+    { id: "camp_adidas_monsoon", label: "Adidas Monsoon Offer", flatOff: 40000, minCart: 250000, fundedBy: "brand", budget: 80000 },
+    { id: "camp_merchant_diwali", label: "Diwali Marketing Campaign", flatOff: 30000, minCart: 200000, fundedBy: "merchant_marketing", budget: 60000 },
   ];
 
   for (const c of campaigns) {

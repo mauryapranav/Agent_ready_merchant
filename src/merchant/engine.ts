@@ -1,9 +1,9 @@
 import type { CartState } from "../types/messages.js";
 import type { OfferPolicy, WaterfallStep } from "../types/policy.js";
-import type { CounterOffer, FundedCampaign, RailOffer } from "../types/catalog.js";
+import type { CounterOffer, FundedCampaign, Product, RailOffer, SwapAlternatives } from "../types/catalog.js";
 import { evaluateMerchantGate, type MerchantGateResult } from "../core/merchant-gate.js";
 import type { ReleaseLedgerEntry } from "../types/policy.js";
-import { productBySku, OFFER_SURFACE, SWAP_ALTERNATIVES } from "./data.js";
+import { productBySku as moduleProductBySku, OFFER_SURFACE, SWAP_ALTERNATIVES } from "./data.js";
 
 export interface WaterfallInput {
   cart: CartState;
@@ -15,6 +15,18 @@ export interface WaterfallInput {
   now: Date;
   offerTtlMs?: number | undefined;
   campaigns?: FundedCampaign[] | undefined;
+  products?: Product[] | undefined;
+  railOffers?: RailOffer[] | undefined;
+  swapAlternatives?: SwapAlternatives | undefined;
+}
+
+/**
+ * Resolve a SKU against the caller-supplied catalog when one is given, falling back to the
+ * static module catalog. The API serves products from Postgres, so without this the gate
+ * would price DB-only SKUs at cost 0 and never reject on floor margin.
+ */
+function resolveProduct(input: WaterfallInput, sku: string): Product | undefined {
+  return input.products ? input.products.find((p) => p.sku === sku) : moduleProductBySku(sku);
 }
 
 export interface WaterfallOutcome {
@@ -101,7 +113,7 @@ function campaignCandidate(input: WaterfallInput): CandidateResult {
 }
 
 function railCandidate(input: WaterfallInput): CounterOffer | null {
-  const usable = OFFER_SURFACE.railOffers
+  const usable = (input.railOffers ?? OFFER_SURFACE.railOffers)
     .filter((r: RailOffer) => new Date(r.validTo) > input.now && input.buyerAllowedRails.includes(r.rail))
     .map((r) => ({ r, discount: Math.min(Math.floor((input.cart.totalPaise * r.discountPct) / 100), r.maxDiscountPaise) }))
     .filter((x) => x.discount >= input.requiredDiscountPaise)
@@ -121,10 +133,11 @@ function railCandidate(input: WaterfallInput): CounterOffer | null {
 }
 
 function swapCandidate(input: WaterfallInput): CounterOffer | null {
+  const swaps = input.swapAlternatives ?? SWAP_ALTERNATIVES;
   for (const item of input.cart.items) {
-    for (const altSku of SWAP_ALTERNATIVES[item.sku] ?? []) {
-      const from = productBySku(item.sku);
-      const to = productBySku(altSku);
+    for (const altSku of swaps[item.sku] ?? []) {
+      const from = resolveProduct(input, item.sku);
+      const to = resolveProduct(input, altSku);
       if (!from || !to) {
         continue;
       }
@@ -162,7 +175,7 @@ function priceCutCandidate(input: WaterfallInput): CounterOffer | null {
 }
 
 function runGateForStep(step: WaterfallStep, offer: CounterOffer, input: WaterfallInput): MerchantGateResult {
-  const itemsValue = input.cart.items.reduce((sum, i) => sum + (productBySku(i.sku)?.costPaise ?? 0) * i.qty, 0);
+  const itemsValue = input.cart.items.reduce((sum, i) => sum + (resolveProduct(input, i.sku)?.costPaise ?? 0) * i.qty, 0);
   return evaluateMerchantGate({
     policy: input.policy,
     step,

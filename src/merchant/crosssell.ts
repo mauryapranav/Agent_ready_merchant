@@ -22,11 +22,12 @@ export function suggestCrossSell(
   cartSkus: Array<{ sku: string; qty: number }>,
   headroomPaise: number,
   affinityBrands: string[],
-  attachmentCriteria: SoftCriterion[] = []
+  attachmentCriteria: SoftCriterion[] = [],
+  catalog: Product[] = CATALOG
 ): CrossSellSuggestion | null {
   const inCart = new Set(cartSkus.map((i) => i.sku));
   const cartCategories = new Set(
-    cartSkus.flatMap((i) => CATALOG.filter((p) => p.sku === i.sku).map((p) => p.category))
+    cartSkus.flatMap((i) => catalog.filter((p) => p.sku === i.sku).map((p) => p.category))
   );
   const adjacent = new Set(Array.from(cartCategories).flatMap((c) => CROSS_SELL_ADJACENCY[c] ?? []));
 
@@ -39,7 +40,7 @@ export function suggestCrossSell(
     );
 
   let best: { product: Product; score: number } | null = null;
-  for (const product of CATALOG) {
+  for (const product of catalog) {
     if (inCart.has(product.sku) || !adjacent.has(product.category) || !matchesCriteria(product)) {
       continue;
     }

@@ -139,7 +139,7 @@
 
 <script type="module">
 const $ = (s) => document.querySelector(s);
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&", "<":"<", ">":">", '"':""", "'":"'" }[c]));
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {maximumFractionDigits: 0});
 let catalog = [];
 let lastRun = null;
@@ -163,43 +163,60 @@ async function loadCatalog() {
   }
 }
 
-function autoSelectShoe(parsed) {
+function autoSelectFromIntent(parsed) {
   const list = $("#sku-list");
-  const inputs = list.querySelectorAll('input[name="sku"]');
-  inputs.forEach(i => { i.checked = false; i.parentElement.querySelector('.sku-auto')?.remove(); });
-  
+  list.querySelectorAll('input[name="sku"]').forEach(i => {
+    i.checked = false;
+    i.parentElement.querySelector('.sku-auto')?.remove();
+  });
+  setSkuNote("");
+
   const cap = parsed.capPaise;
-  const preferredCategory = parsed.softCriteria?.find(c => c.kind === "category")?.value;
-  const preferredBrand = parsed.softCriteria?.find(c => c.kind === "brand")?.value;
-  
-  let bestMatch = null;
-  let bestScore = -1;
-  
-  for (const p of catalog) {
-    if (p.category !== "shoes") continue;
-    if (p.pricePaise > cap) continue;
-    
-    let score = 0;
-    if (preferredBrand && p.brand.toLowerCase() === preferredBrand.toLowerCase()) score += 100;
-    if (preferredCategory && p.category === preferredCategory) score += 50;
-    score += (cap - p.pricePaise); // prefer cheaper within budget
-    
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = p;
-    }
+  const wantCategory = parsed.softCriteria?.find(c => c.kind === "category")?.value?.toLowerCase();
+  const wantBrand = parsed.softCriteria?.find(c => c.kind === "brand")?.value?.toLowerCase();
+
+  // Ranked in tiers so a stated brand or category always outranks price. The previous version
+  // added (cap - price) in paise to a +100 brand bonus, so price swamped every criterion.
+  const affordable = catalog.filter(p => p.pricePaise <= cap);
+  const scored = affordable.map(p => ({
+    p,
+    brand: wantBrand && p.brand.toLowerCase() === wantBrand ? 1 : 0,
+    cat: wantCategory && p.category.toLowerCase() === wantCategory ? 1 : 0,
+  }));
+  scored.sort((a, b) =>
+    (b.brand - a.brand) || (b.cat - a.cat) || (a.p.pricePaise - b.p.pricePaise));
+
+  const best = scored[0];
+  if (!best) {
+    const cheapest = catalog.slice().sort((a, b) => a.pricePaise - b.pricePaise)[0];
+    setSkuNote(catalog.length === 0
+      ? "Catalog is still loading."
+      : `Nothing in the catalog fits a ${paise(cap)} cap${cheapest ? " — the cheapest item is " + esc(cheapest.title) + " at " + paise(cheapest.pricePaise) : ""}. Pick items manually, or raise the cap.`);
+    return;
   }
-  
-  if (bestMatch) {
-    const input = list.querySelector(`input[value="${bestMatch.sku}"]`);
-    if (input) {
-      input.checked = true;
-      const autoBadge = document.createElement("span");
-      autoBadge.className = "sku-auto";
-      autoBadge.textContent = "Auto-selected";
-      input.parentElement.appendChild(autoBadge);
-    }
+
+  const input = list.querySelector(`input[value="${best.p.sku}"]`);
+  if (input) {
+    input.checked = true;
+    const badge = document.createElement("span");
+    badge.className = "sku-auto";
+    badge.textContent = "Auto-selected";
+    input.parentElement.appendChild(badge);
   }
+  if ((wantBrand && !best.brand) || (wantCategory && !best.cat)) {
+    setSkuNote("No item matched every stated preference within the cap — picked the closest affordable option. Change the selection if that is wrong.");
+  }
+}
+
+function setSkuNote(msg) {
+  let note = document.getElementById("sku-note");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "sku-note";
+    note.style.cssText = "font-size:12px;color:var(--muted);margin-top:8px";
+    $("#sku-list").after(note);
+  }
+  note.innerHTML = msg;
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -254,7 +271,7 @@ $("#parse-btn").addEventListener("click", async () => {
     wrap.innerHTML =
       bits.map(b => `<span class="chip plain">${b}</span>`).join("") +
       `<span class="chip info"><i></i>read by ${data.parsedBy === "llm" ? "LLM · validated" : "deterministic parser"}</span>`;
-    autoSelectShoe(data);
+    autoSelectFromIntent(data);
   } finally {
     btn.disabled = false;
   }
@@ -264,6 +281,12 @@ $("#run-btn").addEventListener("click", async () => {
   const btn = $("#run-btn");
   btn.disabled = true;
   const skus = [...document.querySelectorAll('#sku-list input[name="sku"]:checked')].map(i => ({ sku: i.value, qty: 1 }));
+  if (skus.length === 0) {
+    const b = $("#result-banner"); b.className = "banner bad";
+    b.textContent = "Pick at least one item first — read the intent, or tick something in the cart.";
+    btn.disabled = false;
+    return;
+  }
   try {
     const csrfToken = await getCsrfToken();
     const res = await fetch("/api/session", {

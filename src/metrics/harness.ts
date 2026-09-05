@@ -135,7 +135,9 @@ export async function runArmSettle(shoppers: Shopper[], policy = DEFAULT_POLICY)
   const r = emptyArm("settle");
   r.attachedRevenuePaise = 0;
   const ledger: ReleaseLedgerEntry[] = [];
-  const campaigns = structuredClone(OFFER_SURFACE.campaigns);
+  // Threaded across shoppers: runSession returns the post-draw budgets, and without feeding them
+  // back the population is simulated against an effectively unlimited campaign pool.
+  let campaigns = structuredClone(OFFER_SURFACE.campaigns);
   for (const s of shoppers) {
     const p = productBySku(s.sku)!;
     const total = p.pricePaise * s.qty;
@@ -149,6 +151,9 @@ export async function runArmSettle(shoppers: Shopper[], policy = DEFAULT_POLICY)
       campaigns,
       now: NOW,
     });
+    if (result.updatedCampaigns) {
+      campaigns = result.updatedCampaigns;
+    }
     if (result.outcome === "PAID" || result.outcome === "DIRECT_PAID") {
       r.closes += 1;
       r.revenuePaise += result.finalTotalPaise ?? 0;

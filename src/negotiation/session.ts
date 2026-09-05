@@ -25,6 +25,9 @@ export interface SessionInput {
   offerTtlMs?: number | undefined;
   executor?: PaymentExecutor;
   campaigns?: import("../types/catalog.js").FundedCampaign[] | undefined;
+  products?: import("../types/catalog.js").Product[] | undefined;
+  railOffers?: import("../types/catalog.js").RailOffer[] | undefined;
+  swapAlternatives?: import("../types/catalog.js").SwapAlternatives | undefined;
   signingKeys?: SigningKeyPair | undefined;
   now: Date;
 }
@@ -62,7 +65,7 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
   }
 
   if (cart.totalPaise <= mandate.hardCapPaise) {
-    const crossSell = evaluateCrossSell(mandate, cart.items, input.buyerContext.affinityTopBrands);
+    const crossSell = evaluateCrossSell(mandate, cart.items, input.buyerContext.affinityTopBrands, input.products);
     let payableItems = cart.items;
     let payableTotal = cart.totalPaise;
 
@@ -103,6 +106,9 @@ export async function runSession(input: SessionInput): Promise<SessionOutcome> {
     now,
     offerTtlMs: input.offerTtlMs,
     campaigns: input.campaigns,
+    products: input.products,
+    railOffers: input.railOffers,
+    swapAlternatives: input.swapAlternatives,
   });
   const updatedCampaigns = wf.updatedCampaigns;
   const signedOfferEvent = (() => {

@@ -133,12 +133,18 @@ export async function getCampaignsForWaterfall(): Promise<FundedCampaign[]> {
   return loadCampaigns();
 }
 
-export async function updateCampaignBudget(campaignId: string, spentPaise: number): Promise<void> {
-  await query(
+/**
+ * Decrements a campaign budget, refusing to go negative. The guard makes the write safe against
+ * the read-modify-write window between loadCampaigns() and this call: if two sessions both saw
+ * enough budget, the second UPDATE matches no row and returns false rather than overdrawing.
+ */
+export async function updateCampaignBudget(campaignId: string, spentPaise: number): Promise<boolean> {
+  const result = await query(
     `UPDATE campaigns SET remaining_budget_paise = remaining_budget_paise - $1, updated_at = NOW()
-     WHERE campaign_id = $2 AND merchant_id = $3`,
+     WHERE campaign_id = $2 AND merchant_id = $3 AND remaining_budget_paise >= $1`,
     [spentPaise, campaignId, MERCHANT_ID]
   );
+  return (result.rowCount ?? 0) > 0;
 }
 
 export async function getReleaseLedger(): Promise<ReleaseLedgerEntry[]> {

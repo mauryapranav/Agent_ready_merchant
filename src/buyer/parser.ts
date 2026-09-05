@@ -215,7 +215,11 @@ export async function parseIntentWithFallback(
   if (opts.apiKey !== undefined || llmParserConfigured()) {
     try {
       return { parsed: await parseWithLLM(text, opts), parsedBy: "llm" };
-    } catch {
+    } catch (err) {
+      // Falling back silently makes a misconfigured model or an expired key look identical to
+      // "no LLM configured" — the UI just says "deterministic parser" and nothing says why.
+      console.warn("[parser] LLM parse failed, falling back to deterministic:",
+        err instanceof Error ? err.message : String(err));
       return { parsed: parseIntentDeterministic(text), parsedBy: "deterministic" };
     }
   }

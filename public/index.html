@@ -212,7 +212,7 @@
 </div>
 <script type="module">
 const $ = (s) => document.querySelector(s);
-const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&", "<":"<", ">":">", """:""", "'":"'" }[c]));
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const paise = (v) => "\u20B9" + Number(v / 100).toLocaleString("en-IN", {minimumFractionDigits: 0});
 let catalog = [];
 

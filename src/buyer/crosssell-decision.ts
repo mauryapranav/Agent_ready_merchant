@@ -1,6 +1,7 @@
 import type { Mandate } from "../types/mandate.js";
+import type { Product } from "../types/catalog.js";
 import { suggestCrossSell, type CrossSellSuggestion } from "../merchant/crosssell.js";
-import { productBySku } from "../merchant/data.js";
+import { CATALOG, productBySku as moduleProductBySku } from "../merchant/data.js";
 
 export interface CrossSellDecision {
   offered: boolean;
@@ -13,11 +14,16 @@ export interface CrossSellDecision {
 export function evaluateCrossSell(
   mandate: Mandate,
   cartItems: Array<{ sku: string; qty: number }>,
-  affinityBrands: string[]
+  affinityBrands: string[],
+  catalog?: Product[]
 ): CrossSellDecision {
-  const cartTotal = cartItems.reduce((sum, i) => sum + (productBySku(i.sku)?.pricePaise ?? 0) * i.qty, 0);
+  // Without the caller-supplied catalog, DB-only SKUs price at 0 here, which inflates headroom
+  // to the full cap and lets suggestCrossSell attach a product the store does not stock.
+  const activeCatalog = catalog ?? CATALOG;
+  const priceOf = (sku: string) => (catalog ? catalog.find((p) => p.sku === sku)?.pricePaise : moduleProductBySku(sku)?.pricePaise) ?? 0;
+  const cartTotal = cartItems.reduce((sum, i) => sum + priceOf(i.sku) * i.qty, 0);
   const headroom = mandate.hardCapPaise - cartTotal;
-  const suggestion = suggestCrossSell(cartItems, headroom, affinityBrands, mandate.attachmentCriteria);
+  const suggestion = suggestCrossSell(cartItems, headroom, affinityBrands, mandate.attachmentCriteria, activeCatalog);
   if (!suggestion) {
     return {
       offered: false,

@@ -21,6 +21,7 @@ import {
   loadProducts,
   loadSwapAlternatives,
   getReleaseLedger,
+  addReleaseLedgerEntry,
   persistSession,
   persistAuditEvents,
   reserveInventory,
@@ -82,6 +83,7 @@ interface SessionRequestBody {
   consentSharing?: "none" | "anonymized_topk";
   offerTtlMs?: number;
   forceDrift?: boolean;
+  userId?: string;
 }
 
 interface ValidatedSessionBody {
@@ -93,6 +95,7 @@ interface ValidatedSessionBody {
   consentSharing: "none" | "anonymized_topk" | undefined;
   offerTtlMs: number | undefined;
   forceDrift: boolean | undefined;
+  userId: string | undefined;
 }
 
 interface ValidationError {
@@ -212,6 +215,10 @@ function validateSessionBody(body: unknown): { valid: ValidatedSessionBody; erro
     errors.push({ field: "forceDrift", message: "forceDrift must be a boolean" });
   }
 
+  if (b.userId !== undefined && (typeof b.userId !== "string" || b.userId.length > 64 || !/^[A-Za-z0-9_.:-]+$/.test(b.userId))) {
+    errors.push({ field: "userId", message: "userId must be <=64 chars of [A-Za-z0-9_.:-]" });
+  }
+
   return {
     valid: {
       intentText: b.intentText as string | undefined,
@@ -222,6 +229,7 @@ function validateSessionBody(body: unknown): { valid: ValidatedSessionBody; erro
       consentSharing: b.consentSharing as "none" | "anonymized_topk" | undefined,
       offerTtlMs: b.offerTtlMs as number | undefined,
       forceDrift: b.forceDrift as boolean | undefined,
+      userId: b.userId as string | undefined,
     },
     errors,
   };
@@ -298,6 +306,21 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/demo") {
+    const html = readFileSync(join(__dirname, "../../public/demo.html"), "utf8");
+    res.writeHead(200, { "content-type": "text/html" });
+    res.end(html);
+    return;
+  }
+
+  // Explicit allowlist rather than a static directory handler: no path-traversal surface.
+  if (req.method === "GET" && (url.pathname === "/demo.js" || url.pathname === "/demo-report.js" || url.pathname === "/metrics-data.js")) {
+    const js = readFileSync(join(__dirname, "../../public" + url.pathname), "utf8");
+    res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+    res.end(js);
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/parse") {
     const clientKey = getClientIp(req);
     if (!allowRequest(`parse:${clientKey}`)) {
@@ -340,12 +363,32 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/api/catalog") {
-    const [products, campaigns, railOffers] = await Promise.all([
+    const [products, campaigns, railOffers, policy, releaseLedger] = await Promise.all([
       loadProducts(),
       loadCampaigns(),
       loadRailOffers(),
+      loadMerchantPolicy(),
+      getReleaseLedger(),
     ]);
-    send(res, 200, { catalog: products, offers: { campaigns, railOffers, coupons: [] } });
+    // Same day boundary the merchant gate uses, so the console shows the figure the gate enforces.
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const releasedTodayPaise = releaseLedger
+      .filter((e) => new Date(e.releasedAt) >= startOfDay)
+      .reduce((sum, e) => sum + e.discountPaise, 0);
+    send(res, 200, {
+      catalog: products,
+      offers: { campaigns, railOffers, coupons: [] },
+      policy: {
+        floorMarginPct: policy.floorMarginPct,
+        dailyReleaseBudgetPaise: policy.dailyReleaseBudgetPaise,
+        maxReleasesPerDay: policy.maxReleasesPerDay,
+        cooldownMinutes: policy.cooldownMinutes,
+        waterfall: policy.waterfall,
+      },
+      releasedTodayPaise,
+      releasesToday: releaseLedger.filter((e) => new Date(e.releasedAt) >= startOfDay).length,
+    });
     return;
   }
 
@@ -522,7 +565,7 @@ const server = createServer(async (req, res) => {
     const cartHashValue = cartHash(skus);
 
     const mandate = buildMandate(
-      `user_${Math.random().toString(36).slice(2, 6)}`,
+      body.userId ?? `user_${Math.random().toString(36).slice(2, 6)}`,
       intentText,
       parsed,
       cartHashValue,
@@ -530,13 +573,21 @@ const server = createServer(async (req, res) => {
       new Date()
     );
 
-    const [basePolicy, campaigns, releaseLedger] = await Promise.all([
+    const [basePolicy, campaigns, releaseLedger, railOffers] = await Promise.all([
       loadMerchantPolicy(),
       loadCampaigns(),
       getReleaseLedger(),
+      loadRailOffers(),
     ]);
+    // The engine defaults to the static module catalog, which shares only 2 of 12 SKUs with the
+    // database. Pass the same product list used to price the cart so the merchant gate sees real
+    // costs, the swap step can resolve DB SKUs, and rail discounts match what /api/catalog shows.
+    const dbProducts = [...productMap.values()];
 
     const policy = buildPolicy(body, basePolicy);
+
+    // runSession appends to this array in place; anything past the mark is new this session.
+    const releaseLedgerMark = releaseLedger.length;
 
     const reserveResult = await reserveInventory(sessionId, skus, 15);
     if (!reserveResult.success) {
@@ -558,6 +609,9 @@ const server = createServer(async (req, res) => {
       offerTtlMs: body.offerTtlMs,
       executor,
       campaigns,
+      products: dbProducts,
+      railOffers,
+      swapAlternatives,
       signingKeys,
       now: new Date(),
     });
@@ -587,12 +641,23 @@ const server = createServer(async (req, res) => {
 
     await persistAuditEvents(sessionId, [...result.buyerLedger.all()], [...result.merchantLedger.all()], signingKeys);
 
+    // Without this the release_ledger table is never written, so the merchant gate evaluates its
+    // daily budget, max-releases-per-day and per-user cooldown against a permanently empty list.
+    for (const entry of releaseLedger.slice(releaseLedgerMark)) {
+      await addReleaseLedgerEntry({ ...entry, sessionId });
+    }
+
     if (result.updatedCampaigns) {
       for (const c of result.updatedCampaigns) {
         const original = campaigns.find((oc) => oc.campaignId === c.campaignId);
         if (original) {
           const spent = original.remainingBudgetPaise - c.remainingBudgetPaise;
-          if (spent > 0) await (await import("./db-service.js")).updateCampaignBudget(c.campaignId, spent);
+          if (spent > 0) {
+            const applied = await (await import("./db-service.js")).updateCampaignBudget(c.campaignId, spent);
+            if (!applied) {
+              console.warn("[campaign] overcommit: " + sessionId + " claimed " + spent + "p from " + c.campaignId + " but the budget was already drawn down");
+            }
+          }
         }
       }
     }
