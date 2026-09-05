@@ -118,7 +118,8 @@ window.renderReport = function renderReport(state) {
          <code>docs/metrics-report.json</code> as an explicitly-labelled ceiling, not a headline.</p>`;
   }
 
-  document.getElementById("stage").classList.add("hidden");
+  // The report now lives inside the evidence section rather than replacing the page, so the
+  // live run stays on screen and the narrative order is preserved.
   const root = document.getElementById("report-root");
   root.innerHTML = `
   <div class="report">

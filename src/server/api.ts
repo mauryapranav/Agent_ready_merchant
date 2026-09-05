@@ -328,7 +328,12 @@ async function handleRequest(
     return;
   }
 
-  if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/console")) {
+  if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/demo")) {
+    sendPublicFile(res, "demo.html", "text/html");
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/console") {
     sendPublicFile(res, "index.html", "text/html");
     return;
   }
@@ -338,13 +343,9 @@ async function handleRequest(
     return;
   }
 
-  if (req.method === "GET" && url.pathname === "/demo") {
-    sendPublicFile(res, "demo.html", "text/html");
-    return;
-  }
-
   // Explicit allowlist rather than a static directory handler: no path-traversal surface.
-  if (req.method === "GET" && (url.pathname === "/demo.js" || url.pathname === "/demo-report.js" || url.pathname === "/metrics-data.js")) {
+  if (req.method === "GET" && (url.pathname === "/demo.js" || url.pathname === "/demo-report.js" ||
+      url.pathname === "/demo-sections.js" || url.pathname === "/metrics-data.js")) {
     sendPublicFile(res, url.pathname.slice(1), "text/javascript; charset=utf-8");
     return;
   }

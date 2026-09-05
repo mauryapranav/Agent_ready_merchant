@@ -417,7 +417,10 @@ function waitForAdvance(index) {
 }
 
 async function run() {
-  $("#run").disabled = true;
+  for (const id of ["run", "run-hero", "run-foot"]) {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  }
   $("#idle")?.remove();
   state.results = [];
   state.autoRun = false;
@@ -442,7 +445,10 @@ async function run() {
     if (!data) {
       $("#focus").innerHTML = `<div class="idle"><div><h3>Run stopped</h3>
         <p>${esc(failed?.message || "The session request failed.")}</p></div></div>`;
-      $("#run").disabled = false;
+      for (const id of ["run", "run-hero", "run-foot"]) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = false;
+      }
       return;
     }
     state.results[i] = data;
@@ -464,7 +470,13 @@ function showReport() {
   if (window.renderReport) window.renderReport(state);
 }
 
-$("#run").addEventListener("click", run);
+// Three entry points (nav, hero, footer) drive the same run.
+for (const id of ["run", "run-hero", "run-foot"]) {
+  document.getElementById(id)?.addEventListener("click", () => {
+    document.getElementById("live")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    run();
+  });
+}
 $("#theme").addEventListener("click", () => {
   const dark = document.documentElement.getAttribute("data-theme") === "dark";
   document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");

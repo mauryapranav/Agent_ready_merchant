@@ -3,65 +3,174 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Settle — Merchant Control Room</title>
+<title>Settle — Agent-Ready Merchant Checkout</title>
 <style>
   :root{
-    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --muted:#78716C;
-    --accent:#0F766E; --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
-    --line:#E7E5E4; --card-hover:#F5F5F4;
+    --bg:#FAFAF9; --card:#FFFFFF; --ink:#1C1917; --ink-2:#57534E; --muted:#78716C;
+    --accent:#0F766E; --accent-ink:#0B5C55;
+    --ok:#15803D; --warn:#B45309; --bad:#B91C1C; --info:#1D4ED8;
+    --line:#E7E5E4; --card-hover:#F5F5F4; --input-bg:#FFFFFF;
     /* Waterfall funding sources: categorical slots 1-4, fixed order, never cycled. */
     --m-campaign:#2a78d6; --m-rail:#eb6834; --m-swap:#1baf7a; --m-cut:#eda100;
-    --track:#E7E5E4;
+    --track:#E7E5E4; --hero-grad:radial-gradient(120% 90% at 50% -10%,#EEF7F5 0%,var(--bg) 60%);
   }
   [data-theme="dark"]{
-    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --muted:#A8A29E;
-    --line:#44403C; --card-hover:#2A2725;
+    --bg:#0C0A09; --card:#1C1917; --ink:#F5F5F4; --ink-2:#D6D3D1; --muted:#A8A29E;
+    --line:#332F2C; --card-hover:#2A2725; --input-bg:#1C1917;
     --m-campaign:#3987e5; --m-rail:#d95926; --m-swap:#199e70; --m-cut:#c98500;
-    --track:#3A3633;
+    --track:#3A3633; --hero-grad:radial-gradient(120% 90% at 50% -10%,#10201E 0%,var(--bg) 60%);
   }
   *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);
-    font:14px/1.45 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;}
+    font:15px/1.6 -apple-system,"Segoe UI",Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased}
   .mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
-  header{background:var(--card);border-bottom:1px solid var(--line);padding:12px 24px;
-    display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20}
-  .brand{font-weight:700;font-size:16px}
+  a{color:inherit}
+
+  /* ---------- nav ---------- */
+  nav.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 86%,transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:1240px;margin:0 auto;padding:11px 22px;display:flex;align-items:center;gap:20px}
+  .brand{font-weight:700;font-size:15.5px;letter-spacing:-.01em;text-decoration:none;white-space:nowrap}
   .brand span{color:var(--accent)}
-  .brand-sub{color:var(--muted);font-size:11px;font-weight:400}
-  .hdr-right{display:flex;gap:10px;align-items:center}
-  button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 16px;
-    font-weight:600;cursor:pointer;font-size:13px}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .nav-links{display:flex;gap:19px;flex:1;font-size:13px;color:var(--muted)}
+  .nav-links a{text-decoration:none}
+  .nav-links a:hover{color:var(--ink)}
+  @media(max-width:900px){.nav-links{display:none}}
+  button{font:inherit;cursor:pointer;border:0;border-radius:9px}
+  .btn{background:var(--ink);color:var(--bg);padding:9px 16px;font-size:13px;font-weight:600}
+  .btn:hover{opacity:.88}
+  .btn.accent{background:var(--accent);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .icon-btn{background:transparent;border:1px solid var(--line);color:var(--ink);
+    width:34px;height:34px;display:grid;place-items:center}
 
-  .stage{display:grid;grid-template-columns:250px 1fr 230px;gap:16px;
-    padding:16px 24px 40px;max-width:1500px;margin:0 auto;align-items:start}
+  /* ---------- shared section furniture ---------- */
+  section{max-width:1240px;margin:0 auto;padding:82px 22px;scroll-margin-top:64px}
+  .eyebrow{font-family:ui-monospace,Consolas,monospace;font-size:11px;letter-spacing:.13em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--accent)}
+  h2.big{font-size:clamp(26px,3.6vw,40px);line-height:1.12;letter-spacing:-.026em;
+    margin:0 0 12px;font-weight:700;max-width:20ch}
+  h2.big .dim{color:var(--muted)}
+  .lede{color:var(--ink-2);font-size:15.5px;max-width:62ch;margin:0}
+
+  /* ---------- hero ---------- */
+  .hero{background:var(--hero-grad);border-bottom:1px solid var(--line)}
+  .hero-in{max-width:1240px;margin:0 auto;padding:74px 22px 60px;text-align:center}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:5px 13px;border-radius:99px;
+    border:1px solid var(--line);background:var(--card);font-size:12px;color:var(--ink-2);margin-bottom:22px}
+  .pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent)}
+  h1{font-size:clamp(34px,6.2vw,68px);line-height:1.04;letter-spacing:-.035em;
+    margin:0 0 18px;font-weight:800}
+  h1 .dim{color:var(--muted);display:block}
+  .hero p{color:var(--ink-2);font-size:16.5px;max-width:60ch;margin:0 auto 26px}
+  .cta-row{display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+  .cta-row .btn{padding:11px 20px;font-size:14px}
+  .hero-stats{display:flex;gap:0;justify-content:center;flex-wrap:wrap;margin-top:44px;
+    border:1px solid var(--line);border-radius:13px;background:var(--card);overflow:hidden;max-width:840px;
+    margin-left:auto;margin-right:auto}
+  .hs{flex:1;min-width:170px;padding:17px 20px;border-right:1px solid var(--line);text-align:left}
+  .hs:last-child{border-right:0}
+  .hs .v{font-size:21px;font-weight:700;letter-spacing:-.02em}
+  .hs .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+  /* ---------- numbered problem cards ---------- */
+  .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:16px;margin-top:34px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px}
+  .pcard .n{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--accent);
+    font-weight:700;margin-bottom:10px}
+  .pcard h3{font-size:14.5px;margin:0 0 7px;font-weight:650}
+  .pcard p{font-size:13px;color:var(--muted);margin:0;line-height:1.55}
+
+  /* ---------- waterfall pipeline ---------- */
+  .pipe-rail{display:flex;gap:8px;flex-wrap:wrap;margin:30px 0 22px}
+  .pipe-tab{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:9px;
+    border:1px solid var(--line);background:var(--card);font-size:12.5px;cursor:pointer;
+    transition:border-color .2s,background .2s}
+  .pipe-tab .sq{width:9px;height:9px;border-radius:2px}
+  .pipe-tab .ix{font-family:ui-monospace,monospace;font-size:10.5px;color:var(--muted)}
+  .pipe-tab[aria-selected="true"]{border-color:var(--accent);background:var(--card-hover)}
+  .pipe-body{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px}
+  @media(max-width:820px){.pipe-body{grid-template-columns:1fr}}
+  .pipe-body h3{margin:0 0 4px;font-size:19px;letter-spacing:-.02em}
+  .pipe-body .who{font-size:12.5px;color:var(--accent);font-weight:600;margin-bottom:12px}
+  .pipe-body p{color:var(--ink-2);font-size:14px;margin:0 0 16px}
+  .kv{border-top:1px solid var(--line);padding:9px 0;display:flex;justify-content:space-between;
+    gap:14px;font-size:12.5px}
+  .kv span:first-child{color:var(--muted)}
+  .kv span:last-child{font-weight:600;text-align:right}
+  .pipe-vis{background:var(--card-hover);border-radius:11px;padding:18px;display:flex;
+    flex-direction:column;justify-content:center;gap:11px}
+  .costbar{height:9px;border-radius:99px;background:var(--track);overflow:hidden}
+  .costbar i{display:block;height:100%;border-radius:99px}
+  .cost-note{font-size:11.5px;color:var(--muted)}
+
+  /* ---------- arm comparison ---------- */
+  .arms{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:32px}
+  .arm{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;position:relative}
+  .arm.win{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .arm .tag{position:absolute;top:-10px;left:20px;background:var(--accent);color:#fff;
+    font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:.03em}
+  .arm .nm{font-size:12px;color:var(--muted);font-family:ui-monospace,monospace;
+    text-transform:uppercase;letter-spacing:.08em}
+  .arm h3{font-size:17px;margin:5px 0 14px;letter-spacing:-.02em}
+  .arm .hero-n{font-size:33px;font-weight:800;letter-spacing:-.03em;line-height:1}
+  .arm .hero-l{font-size:12px;color:var(--muted);margin-bottom:15px}
+  .arm .row{display:flex;justify-content:space-between;font-size:12.5px;padding:7px 0;
+    border-top:1px solid var(--line)}
+  .arm .row span:last-child{font-weight:650}
+
+  /* ---------- governance ---------- */
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:16px;margin-top:32px}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:20px}
+  .gcard h3{font-size:14.5px;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+  .gcard h3 i{width:8px;height:8px;border-radius:2px;background:var(--accent);flex-shrink:0}
+  .gcard p{font-size:13px;color:var(--muted);margin:0;line-height:1.55}
+  .gcard code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
+    background:var(--card-hover);padding:1px 5px;border-radius:4px}
+
+  /* ---------- refusal callout ---------- */
+  .refuse{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:34px;
+    display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;margin-top:30px}
+  @media(max-width:820px){.refuse{grid-template-columns:1fr}}
+  .refuse .quote{font-size:19px;line-height:1.45;letter-spacing:-.015em;margin:0 0 12px}
+  .refuse .who{font-size:12.5px;color:var(--muted)}
+  .refuse-list{display:flex;flex-direction:column;gap:11px}
+  .rl{display:flex;gap:11px;align-items:flex-start;font-size:13px}
+  .rl b{display:block;font-size:13px}
+  .rl span{color:var(--muted)}
+  .rl .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0;background:var(--bad)}
+  .rl.warn .dot{background:var(--warn)}
+
+  /* ================= LIVE RUN (control room) ================= */
+  .stage{display:grid;grid-template-columns:250px 1fr 230px;gap:16px;align-items:start;margin-top:30px}
   @media(max-width:1180px){.stage{grid-template-columns:1fr}}
-
-  .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
-  .panel h2{margin:0 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-  .panel .sub{color:var(--muted);font-size:11px;margin:0 0 10px}
-  .rail{position:sticky;top:70px}
-
-  .polrow{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line)}
-  .polrow:last-child{border-bottom:0}
-  .wf-order{display:flex;flex-direction:column;gap:5px;margin-top:10px}
-  .wf-step{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:4px 7px;border-radius:6px;
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 17px;margin-bottom:14px}
+  .panel h2{margin:0 0 2px;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+  .panel .sub{color:var(--muted);font-size:11.5px;margin:0 0 11px}
+  .rail{position:sticky;top:72px}
+  .polrow{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .polrow:last-of-type{border-bottom:0}
+  .wf-order{display:flex;flex-direction:column;gap:5px;margin-top:11px}
+  .wf-step{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:5px 8px;border-radius:7px;
     background:var(--card-hover);border:1px solid transparent;transition:border-color .2s,opacity .3s}
   .wf-step .dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .wf-step .ord{color:var(--muted);font-size:10px;min-width:11px}
   .wf-step.exhausted{opacity:.4}
   .wf-step.exhausted .nm{text-decoration:line-through}
   .wf-step.firing{border-color:var(--accent);background:var(--card)}
-
-  .meter{margin-bottom:11px}
-  .meter .mtop{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px;gap:6px}
+  .meter{margin-bottom:12px}
+  .meter .mtop{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:5px;gap:6px}
   .meter .mtop .lbl{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .meter .mtop .val{font-weight:600;flex-shrink:0}
   .track{height:7px;background:var(--track);border-radius:99px;overflow:hidden}
   .fill{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)}
   .meter.drained .val{color:var(--bad)}
-
   .rost{display:flex;flex-direction:column;gap:6px}
   .rost .b{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:8px;
     border:1px solid var(--line);font-size:12px;transition:background .2s,border-color .2s}
@@ -72,7 +181,6 @@
   .rost .b.active .av{background:var(--accent);color:#fff}
   .rost .nm{flex:1;font-weight:600}
   .rost .st{font-size:10px;color:var(--muted);flex-shrink:0}
-
   .focus{min-height:520px}
   .buyer-head{display:flex;gap:12px;align-items:flex-start;padding-bottom:12px;
     border-bottom:1px solid var(--line);margin-bottom:12px}
@@ -90,7 +198,6 @@
   [data-theme="dark"] .chip.ok{background:#064E3B;color:#6EE7B7}
   [data-theme="dark"] .chip.bad{background:#7F1D1D;color:#FCA5A5}
   [data-theme="dark"] .chip.warn{background:#78350F;color:#FDE047}
-
   .beat{display:flex;gap:11px;padding:7px 0;opacity:0;transform:translateY(5px);
     animation:rise .3s ease forwards}
   @keyframes rise{to{opacity:1;transform:none}}
@@ -105,14 +212,12 @@
   .beat.pass .pip{background:var(--ok)}
   .beat.fail .pip{background:var(--bad)}
   .beat.money .pip{background:var(--accent)}
-
   .verdict{display:inline-block;padding:1px 7px;border-radius:5px;font-size:10.5px;
     font-weight:700;margin-left:6px}
   .verdict.PASS{background:#F0FDF4;color:var(--ok)}
   .verdict.REJECT{background:#FEF2F2;color:var(--bad)}
   [data-theme="dark"] .verdict.PASS{background:#064E3B;color:#6EE7B7}
   [data-theme="dark"] .verdict.REJECT{background:#7F1D1D;color:#FCA5A5}
-
   .outcome{margin-top:14px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:center;gap:12px}
   .outcome .ot{font-weight:700;font-size:14px}
@@ -124,15 +229,10 @@
   [data-theme="dark"] .outcome.ABORTED{background:#7F1D1D}
   [data-theme="dark"] .outcome.PAUSED_FOR_HUMAN{background:#78350F}
   .outcome .final{font-size:19px;font-weight:700;white-space:nowrap}
-
   .idle{display:grid;place-items:center;min-height:440px;text-align:center;color:var(--muted)}
   .idle h3{color:var(--ink);font-size:17px;margin:0 0 6px}
   .idle p{max-width:410px;font-size:13px;margin:0}
-  .hidden{display:none !important}
-  .speed{font-size:11px;color:var(--muted)}
-  .waiting{font-size:12px;color:var(--muted);padding:8px 0}
-
-  /* presenter advance bar */
+  .speed{font-size:11.5px;color:var(--muted)}
   .advance{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;
     padding-top:14px;border-top:1px dashed var(--line)}
   .advance button{padding:8px 14px;font-size:12.5px}
@@ -140,29 +240,49 @@
   .adv-hint kbd{font-family:ui-monospace,Consolas,monospace;font-size:11px;
     border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 5px;
     background:var(--card-hover)}
-  .stale{margin:0 24px 12px;padding:10px 14px;border-radius:9px;font-size:12.5px;
-    border:1px solid var(--warn);background:#FFFBEB;color:var(--warn);max-width:1500px}
+  .stale{margin-bottom:14px;padding:10px 14px;border-radius:9px;font-size:12.5px;
+    border:1px solid var(--warn);background:#FFFBEB;color:var(--warn)}
   [data-theme="dark"] .stale{background:#78350F;color:#FDE047;border-color:#FDE047}
-  .stale b{font-weight:700}
-  .stale code{font-family:ui-monospace,Consolas,monospace;font-size:11px}
 
-  /* ---- metrics landing ---- */
-  .report{max-width:960px;margin:0 auto;padding:26px 24px 60px}
-  .report h1{font-size:24px;margin:0 0 6px}
-  .report h2{font-size:17px;margin:0 0 4px}
-  .report h3{font-size:13.5px;margin:0 0 3px}
-  .report .lede{color:var(--muted);font-size:13.5px;margin:0 0 22px;max-width:640px}
+  /* ---------- try-it / console ---------- */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}
+  @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+  textarea,input[type=text]{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;
+    font:inherit;font-size:14px;background:var(--input-bg);color:var(--ink);resize:vertical}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent)}
+  label.fl{display:block;font-size:11.5px;color:var(--muted);margin:0 0 5px;
+    text-transform:uppercase;letter-spacing:.06em}
+  .skus{display:grid;grid-template-columns:1fr 1fr;gap:2px;max-height:190px;overflow:auto;
+    border:1px solid var(--line);border-radius:9px;padding:8px}
+  @media(max-width:560px){.skus{grid-template-columns:1fr}}
+  .skus label{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:4px 5px;border-radius:6px}
+  .skus label:hover{background:var(--card-hover)}
+  .sku-auto{display:inline-flex;align-items:center;padding:1px 6px;border-radius:99px;font-size:9.5px;
+    font-weight:700;background:var(--accent);color:#fff;margin-left:4px}
+  .scn{display:flex;flex-direction:column;gap:5px;max-height:330px;overflow:auto}
+  .scn .s{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;font-size:12.5px;cursor:pointer}
+  .scn .s:hover{background:var(--card-hover)}
+  .scn .s .r{font-size:11px;color:var(--muted);text-align:right;flex-shrink:0}
+  .scn .s.ok{border-color:var(--ok)} .scn .s.bad{border-color:var(--bad)}
+
+  .foot{border-top:1px solid var(--line);background:var(--card);margin-top:60px}
+  .foot-in{max-width:1240px;margin:0 auto;padding:54px 22px;text-align:center}
+  .hidden{display:none !important}
+
+  /* ---------- metrics report (rendered inline into #report-root) ---------- */
+  .report{margin-top:26px}
+  .report h3{font-size:14px;margin:0 0 3px}
   .report .sub{color:var(--muted);font-size:12px;margin:0 0 12px}
-  .report .foot{color:var(--muted);font-size:11.5px;margin-top:14px;line-height:1.6}
+  .report .foot2{color:var(--muted);font-size:11.5px;margin-top:14px;line-height:1.6}
   .report code{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;
     background:var(--card-hover);padding:1px 5px;border-radius:4px}
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:26px}
-  .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:22px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 17px}
   .tile .tv{font-size:26px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .tile .tl{font-size:12.5px;font-weight:600;margin-top:2px}
   .tile .tn{font-size:11.5px;color:var(--muted);margin-top:3px}
-  .block{background:var(--card);border:1px solid var(--line);border-radius:10px;
-    padding:18px 20px;margin-bottom:18px}
+  .block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:19px 21px;margin-bottom:16px}
   .two{display:grid;grid-template-columns:1fr 1fr;gap:26px}
   @media(max-width:760px){.two{grid-template-columns:1fr}}
   .chart{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}
@@ -177,8 +297,7 @@
   .tbl{margin-top:12px}
   .tbl summary{font-size:11.5px;color:var(--muted);cursor:pointer;padding:3px 0}
   .tbl table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
-  .tbl th{text-align:left;color:var(--muted);font-weight:600;padding:6px 8px;
-    border-bottom:1px solid var(--line)}
+  .tbl th{text-align:left;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
   .tbl td{padding:6px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
   .tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .12s;
     background:var(--ink);color:var(--bg);font-size:11.5px;padding:5px 9px;border-radius:6px;
@@ -186,66 +305,244 @@
 </style>
 </head>
 <body>
-<header>
-  <div>
-    <div class="brand">Settle <span>Control Room</span></div>
-    <div class="brand-sub">Autonomous buyers negotiating against your policy</div>
-  </div>
-  <div class="hdr-right">
+
+<nav class="top">
+  <div class="nav-in">
+    <a class="brand" href="#top">Settle<span>.</span></a>
+    <div class="nav-links">
+      <a href="#problem">The problem</a>
+      <a href="#waterfall">Waterfall</a>
+      <a href="#live">Live run</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#governance">Governance</a>
+      <a href="#try">Try it</a>
+      <a href="#console">Console</a>
+    </div>
     <span class="speed" id="speed"></span>
-    <button id="run">Open the store to AI buyers</button>
-    <button class="ghost" id="theme" title="Toggle theme">&#9680;</button>
+    <button class="btn accent" id="run">Open the store to AI buyers</button>
+    <button class="icon-btn" id="theme" title="Toggle theme">&#9680;</button>
   </div>
-</header>
+</nav>
 
-<div id="stale-warn"></div>
-<div class="stage" id="stage">
-  <div class="rail">
-    <div class="panel">
-      <h2>Your policy</h2>
-      <p class="sub">Deterministic. The agent cannot change these.</p>
-      <div class="polrow"><span>Floor margin</span><b id="p-floor">&mdash;</b></div>
-      <div class="polrow"><span>Releases / day</span><b id="p-rel">&mdash;</b></div>
-      <div class="polrow"><span>Repeat cooldown</span><b id="p-cool">&mdash;</b></div>
-      <div class="wf-order" id="wf-order"></div>
+<div class="hero" id="top">
+  <div class="hero-in">
+    <div class="pill"><i></i> Agentic commerce, built for Indian payment rails</div>
+    <h1>Sell to AI buyers.<span class="dim">Without handing them your margin.</span></h1>
+    <p>An LLM reads the shopper's intent. It never touches the money. Every rupee moves through
+       deterministic gates that the agent cannot argue with — and the merchant spends other
+       people's budget before its own.</p>
+    <div class="cta-row">
+      <button class="btn accent" id="run-hero">Watch 8 AI buyers negotiate</button>
+      <a class="btn ghost" href="#waterfall" style="text-decoration:none;display:inline-block">See the waterfall</a>
     </div>
-    <div class="panel">
-      <h2>Discount budget</h2>
-      <p class="sub">Your own money. The gate refuses past the cap.</p>
-      <div id="daily"></div>
-    </div>
-    <div class="panel">
-      <h2>Funded campaigns</h2>
-      <p class="sub">Someone else&rsquo;s money. Drains as it is spent.</p>
-      <div id="camps"></div>
-    </div>
-  </div>
-
-  <div>
-    <div class="panel focus" id="focus">
-      <div class="idle" id="idle">
-        <div>
-          <h3>Storefront is idle</h3>
-          <p>Eight AI buyers are queued, each carrying its own budget mandate. They arrive
-             one at a time and negotiate against the policy on the left &mdash; which drains
-             as they spend it.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="rail">
-    <div class="panel">
-      <h2>Buyer queue</h2>
-      <p class="sub">Sequential arrivals</p>
-      <div class="rost" id="rost"></div>
+    <div class="hero-stats" id="hero-stats">
+      <div class="hs"><div class="v" id="hs-conv">—</div><div class="l">Carts closed, 120-buyer sim</div></div>
+      <div class="hs"><div class="v" id="hs-own">—</div><div class="l">Merchant's own discount spend</div></div>
+      <div class="hs"><div class="v" id="hs-vs">—</div><div class="l">vs a blanket 10% off</div></div>
+      <div class="hs"><div class="v">0</div><div class="l">Payments an LLM can authorise</div></div>
     </div>
   </div>
 </div>
 
-<div id="report-root"></div>
+<section id="problem">
+  <div class="eyebrow">The flaw in blanket discounting</div>
+  <h2 class="big">Not every over-budget cart <span class="dim">deserves a discount.</span></h2>
+  <p class="lede">When an autonomous buyer arrives with a hard budget and the cart is over it, the
+     reflex is to cut price until it fits. On Indian retail margins that reflex quietly destroys
+     the contribution it was meant to protect.</p>
+  <div class="grid4">
+    <div class="pcard"><div class="n">01</div><h3>Margin sold below cost</h3>
+      <p>A flat percentage is applied without reference to unit cost. A ₹4,500 shoe costing ₹2,700
+         discounted to ₹3,000 books revenue and loses ₹300 a unit.</p></div>
+    <div class="pcard"><div class="n">02</div><h3>Free money left unspent</h3>
+      <p>Brand campaigns, bank rail offers and card-network cashback are already funded by someone
+         else. Cutting your own price first spends margin you never needed to touch.</p></div>
+    <div class="pcard"><div class="n">03</div><h3>Discount stacking with no ceiling</h3>
+      <p>Without a daily release budget and a per-buyer cooldown, the same shopper can be rescued
+         repeatedly and the day's giveaway has no upper bound.</p></div>
+    <div class="pcard"><div class="n">04</div><h3>An agent that can spend</h3>
+      <p>If the language model is in the authorisation path, a prompt injection is a payment
+         instruction. Intent parsing and money movement have to be separate systems.</p></div>
+  </div>
+</section>
+
+<section id="waterfall">
+  <div class="eyebrow">The funding waterfall</div>
+  <h2 class="big">Spend other people's money <span class="dim">before your own.</span></h2>
+  <p class="lede">When a cart breaks the buyer's cap, Settle works down four funding sources in a
+     fixed order, stopping at the first one a deterministic merchant gate approves. Select a stage
+     to see what it costs the merchant.</p>
+  <div class="pipe-rail" id="pipe-rail" role="tablist"></div>
+  <div class="pipe-body" id="pipe-body"></div>
+</section>
+
+<section id="live">
+  <div class="eyebrow">Live negotiation</div>
+  <h2 class="big">Eight AI buyers, <span class="dim">one shared budget pool.</span></h2>
+  <p class="lede">Each buyer below runs against the real API, the real database and the real
+     payment rails — one at a time, because the campaign budget they share depletes as they spend
+     it. Nothing here is pre-recorded.</p>
+  <div id="stale-warn"></div>
+  <div class="stage" id="stage">
+    <div class="rail">
+      <div class="panel">
+        <h2>Your policy</h2>
+        <p class="sub">Deterministic. The agent cannot change these.</p>
+        <div class="polrow"><span>Floor margin</span><b id="p-floor">&mdash;</b></div>
+        <div class="polrow"><span>Releases / day</span><b id="p-rel">&mdash;</b></div>
+        <div class="polrow"><span>Repeat cooldown</span><b id="p-cool">&mdash;</b></div>
+        <div class="wf-order" id="wf-order"></div>
+      </div>
+      <div class="panel">
+        <h2>Discount budget</h2>
+        <p class="sub">Your own money. The gate refuses past the cap.</p>
+        <div id="daily"></div>
+      </div>
+      <div class="panel">
+        <h2>Funded campaigns</h2>
+        <p class="sub">Someone else&rsquo;s money. Drains as it is spent.</p>
+        <div id="camps"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel focus" id="focus">
+        <div class="idle" id="idle">
+          <div>
+            <h3>Storefront is idle</h3>
+            <p>Eight AI buyers are queued, each carrying its own budget mandate. They arrive one at
+               a time and negotiate against the policy on the left &mdash; which drains as they spend it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rail">
+      <div class="panel">
+        <h2>Buyer queue</h2>
+        <p class="sub">Sequential arrivals</p>
+        <div class="rost" id="rost"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="refusal">
+  <div class="eyebrow">Refusal is the feature</div>
+  <h2 class="big">Sometimes the right answer <span class="dim">is no deal.</span></h2>
+  <p class="lede">Two of the eight buyers above never close, and that is the system working. A
+     rescue that breaks the margin floor is worse than a lost sale, and an agent that is unsure
+     should hand back to a human rather than guess.</p>
+  <div class="refuse">
+    <div>
+      <p class="quote">&ldquo;Merchant could not make a profitable offer. I stopped instead of
+         overpaying.&rdquo;</p>
+      <div class="who">&mdash; the buyer agent's own narration, recorded in the audit ledger</div>
+    </div>
+    <div class="refuse-list">
+      <div class="rl"><span class="dot"></span><div><b>Arjun &mdash; no deal</b>
+        <span>The only discount large enough would have pushed margin under the 12% floor. The
+        gate returned REJECT_FLOOR, a half-sized rescue was offered instead, and the buyer's cap
+        refused it.</span></div></div>
+      <div class="rl warn"><span class="dot"></span><div><b>Dev &mdash; handed back to a human</b>
+        <span>His mandate allows a stretch only on a genuine Nike match. The offer was an Adidas
+        hoodie, so the stretch condition was unmet and the session paused rather than assume.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section id="evidence">
+  <div class="eyebrow">Evidence at population scale</div>
+  <h2 class="big">Same conversion. <span class="dim">A fraction of the giveaway.</span></h2>
+  <p class="lede">A seeded, reproducible simulation of 120 synthetic shoppers, run through the same
+     engine that serves the live demo above. Regenerate it yourself with <code>npm run metrics</code>.</p>
+  <div class="arms" id="arms"></div>
+  <div id="report-root"></div>
+</section>
+
+<section id="governance">
+  <div class="eyebrow">Governance</div>
+  <h2 class="big">Autonomous where it is safe. <span class="dim">Bounded everywhere else.</span></h2>
+  <p class="lede">The language model reads intent and writes explanations. It is nowhere in the
+     authorisation path. Every control below is deterministic, inspectable and enforced server-side.</p>
+  <div class="grid3">
+    <div class="gcard"><h3><i></i>Mandate-bound spend</h3>
+      <p>A parsed intent becomes a signed mandate with a hard cap. The buyer gate compares totals
+         against it arithmetically &mdash; no model output can raise it.</p></div>
+    <div class="gcard"><h3><i></i>Merchant floor margin</h3>
+      <p>Every candidate offer is priced against real unit cost. Anything that lands under the
+         configured floor returns <code>REJECT_FLOOR</code> and is never released.</p></div>
+    <div class="gcard"><h3><i></i>Daily release budget</h3>
+      <p>Own-cost discounts accumulate against a per-day ceiling and a per-buyer cooldown. When
+         it is spent, the gate refuses regardless of how good the sale looks.</p></div>
+    <div class="gcard"><h3><i></i>Hash-chained audit ledger</h3>
+      <p>Buyer and merchant each keep an append-only chain; every entry hashes its predecessor and
+         the tip is signed with ed25519. Tampering breaks verification.</p></div>
+    <div class="gcard"><h3><i></i>Idempotent payment attempts</h3>
+      <p>Charges carry a deterministic idempotency key and retries are bounded to the buyer's
+         allowed rails, so a network retry cannot double-debit.</p></div>
+    <div class="gcard"><h3><i></i>Cart-drift detection</h3>
+      <p>The cart is hashed at consent. If it changes before capture the session aborts rather than
+         pay for something the shopper never agreed to.</p></div>
+  </div>
+</section>
+
+<section id="try">
+  <div class="eyebrow">Try it yourself</div>
+  <h2 class="big">Write a mandate <span class="dim">in your own words.</span></h2>
+  <p class="lede">Type a budget instruction the way a shopper would. The parser turns it into a
+     mandate, picks a matching item, and runs a real negotiation against the same policy.</p>
+  <div class="two-col">
+    <div class="panel">
+      <label class="fl" for="try-intent">Your instruction</label>
+      <textarea id="try-intent" rows="3">Get me running shoes under 3700</textarea>
+      <div style="display:flex;gap:9px;margin-top:11px;flex-wrap:wrap">
+        <button class="btn ghost" id="try-parse">Read the intent</button>
+        <button class="btn accent" id="try-run">Negotiate</button>
+      </div>
+      <div class="chips" id="try-chips" style="margin-top:12px"></div>
+      <div id="try-note" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+    </div>
+    <div class="panel">
+      <label class="fl">Cart</label>
+      <div class="skus" id="sku-list"></div>
+      <div id="try-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+</section>
+
+<section id="console">
+  <div class="eyebrow">Merchant console</div>
+  <h2 class="big">Adversarial cases, <span class="dim">on demand.</span></h2>
+  <p class="lede">The scenarios the engine is expected to survive — payment-rail failure, expired
+     offers, cart tampering, exhausted budgets, gate rejections. Click any one to run it live.</p>
+  <div class="two-col">
+    <div class="panel">
+      <h2>Scenario suite</h2>
+      <p class="sub">Each runs a real session against the live policy.</p>
+      <div class="scn" id="scn-list"></div>
+    </div>
+    <div class="panel">
+      <h2>Result</h2>
+      <p class="sub">Outcome, waterfall trace and ledger verification.</p>
+      <div id="scn-result" style="font-size:13px;color:var(--muted)">Pick a scenario to run it.</div>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  <div class="foot-in">
+    <div class="eyebrow" style="justify-content:center">Agent-ready merchant checkout</div>
+    <h2 class="big" style="margin:0 auto 14px;max-width:22ch">Let agents buy. <span class="dim">Keep the margin.</span></h2>
+    <div class="cta-row" style="margin-top:20px">
+      <button class="btn accent" id="run-foot">Run the live demo</button>
+      <a class="btn ghost" href="/console" style="text-decoration:none;display:inline-block">Legacy console</a>
+    </div>
+  </div>
+</div>
+
+<div id="tip" class="tip"></div>
 <script src="/metrics-data.js"></script>
 <script src="/demo-report.js"></script>
 <script type="module" src="/demo.js"></script>
+<script type="module" src="/demo-sections.js"></script>
 </body>
 </html>
