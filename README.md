@@ -33,10 +33,95 @@ NPCI's UAP and the ACP/AP2/x402 race make agent-to-agent commerce the open probl
 
 ---
 
-## Two Surfaces, One Negotiation
+## See It Running
 
-- **`/` — Merchant Console**: live rescue feed with KPIs, policy overrides, fault injection, dual-ledger trace viewer.
-- **`/buyer` — Buyer Agent**: speak or type an intent (Web Speech API, typed fallback), watch your mandate get parsed into visible rules, follow the negotiation step by step, and get an itemized bill explaining *why every line is there* — which rule accepted the attachment, who funded the relief, what the merchant spent from its own margin.
+The landing page at `/` is a single narrative: the claim, the mechanism, a live run,
+the economics, and the audit trail. Every figure on it is computed — none are hardcoded.
+
+### The pitch and the live policy
+
+![Hero](docs/screenshots/01-hero.png)
+
+The panel on the right is not a mockup — it is the merchant's real policy, read from
+Postgres: floor margin, daily discount budget, repeat-buyer cooldown, and the funding
+order with what each step costs.
+
+### The funding waterfall
+
+![Waterfall](docs/screenshots/02-waterfall.png)
+
+Four sources, tried in a fixed order, side by side so the order itself is the argument.
+Only the last one spends merchant margin.
+
+### 13 AI buyers against one shared budget
+
+![Live run](docs/screenshots/03-live-run.png)
+
+Buyers 1–7 walk every funding source and both attachment outcomes; 8–13 put the same
+engine under adverse conditions. They run **one at a time**, because the campaign budget
+they share depletes as they spend it. The run is presenter-paced — each buyer holds at
+its outcome until you advance, or hand the rest to the clock.
+
+### The beat the whole demo turns on
+
+![Fall-through](docs/screenshots/04-fallthrough.png)
+
+Ananya and Rohit both take the Nike campaign, draining it to ₹0. Meera arrives with an
+**identical instruction and an identical cart** — and the waterfall falls through:
+
+> *Brand campaign — skipped. Nike Summer Sale would have covered this, but the budget is spent.*
+
+She still closes, funded by a bank rail offer, still at ₹0 merchant cost. Note the
+receipt and the ed25519 ledger-tip signature beneath the outcome.
+
+### Analytics
+
+![Analytics](docs/screenshots/05-analytics.png)
+
+Revenue by buyer coloured by funding source, gross profit priced against **real unit
+cost** from the catalog, and refusals shown as refusals rather than gaps.
+
+### The counterfactual
+
+![Counterfactual](docs/screenshots/06-counterfactual.png)
+
+The same cohort under three policies. A blanket 10% off frequently earns *less than
+doing nothing*, because it converts more but gives away margin on carts that would have
+closed anyway. Also isolated here: the sessions where the merchant actually paid.
+
+*(The counterfactual compares list price against each buyer's hard cap and ignores the
+stretch rule, which flatters the blanket arm — the real gap is wider.)*
+
+### Transaction history
+
+![History](docs/screenshots/07-history.png)
+
+Read back from the `sessions` table, so it survives a restart. Settlements and refusals
+kept side by side; any row expands into its mandate, cart hash, waterfall trace and
+settlement. A refused offer is marked *(offered)* and *not spent* — an offer the buyer
+declined never counts against merchant margin.
+
+### Protocol surfaces
+
+![Protocol](docs/screenshots/08-protocol.png)
+
+Two live endpoints, fetched in the browser: `/acp/feed` is the agentic product feed a
+buying agent reads before opening a session, and `/.well-known/jwks.json` is the ed25519
+key set a counterparty uses to verify a signed counter-offer independently.
+
+---
+
+## Surfaces
+
+| Route | What it is |
+|---|---|
+| `/` | **Landing + control room.** The narrative above, with the live 13-buyer run, analytics, history, try-it and the scenario suite. |
+| `/demo` | Same page, explicit path. |
+| `/console` | **Merchant console.** The original operator view — rescue feed, KPIs, policy overrides, fault injection, dual-ledger trace viewer. |
+| `/buyer` | **Buyer agent.** Speak or type an intent, watch the mandate get parsed into visible rules, follow the negotiation, and get an itemised bill explaining why every line is there. |
+| `/acp/feed` | Agentic product feed (ACP-inspired). |
+| `/.well-known/jwks.json` | Public key set for verifying signed offers and ledger tips. |
+| `/api/history` · `/api/history/detail` | Session ledger, and full detail for one session. |
 
 ---
 
@@ -106,7 +191,10 @@ npm run demo                      # one rescue story from both audit ledgers
 npm run metrics                   # 120-shopper A/B report → docs/metrics-report.json
 npm run redteam                   # adversarial buyers attack the gates → docs/redteam-report.json
 
-# 7. Start server (merchant console at http://localhost:8787, buyer agent at /buyer)
+# 7. Start server
+#    http://localhost:8787/         landing + live control room
+#    http://localhost:8787/console  merchant console
+#    http://localhost:8787/buyer    buyer agent
 npm run dev
 ```
 
@@ -158,6 +246,38 @@ src/
 ├── types/           # Shared TypeScript types
 └── metrics/         # A/B harness + red-team runner
 ```
+
+---
+
+## Documentation
+
+| File | What it covers |
+|---|---|
+| `ARCHITECTURE.md` | System design and evaluation guide |
+| `docs/demo-video.md` | 5-minute demo flow, shot list, spoken script, pre-record checklist |
+| `docs/submission-answers.md` | What the project solves, and the build obstacles |
+| `docs/protocol-map.md` | How each Settle artifact maps to ACP / AP2 / x402 counterparts |
+| `docs/security-audit.md` | Pre-submission security pass |
+| `docs/metrics-report.json` | Generated by `npm run metrics` — the 120-shopper A/B run |
+| `docs/redteam-report.json` | Generated by `npm run redteam` — adversarial corpus results |
+
+---
+
+## Running the Demo
+
+The live run leaves real state behind — campaign budgets deplete, the daily discount
+budget accumulates, and sessions persist. **Reset before presenting**, or the campaign
+fall-through and the merchant-pays price cut will not demonstrate:
+
+```sql
+DELETE FROM release_ledger WHERE merchant_id = merchant_settle_demo;
+UPDATE campaigns SET remaining_budget_paise = total_budget_paise WHERE merchant_id = merchant_settle_demo;
+UPDATE inventory_reservations SET status = released WHERE status = pending;
+UPDATE inventory SET reserved_qty = 0 WHERE merchant_id = merchant_settle_demo;
+```
+
+The page warns you on load if it detects leftover state. Without Razorpay keys set,
+payments run on the deterministic simulator and everything else behaves identically.
 
 ---
 

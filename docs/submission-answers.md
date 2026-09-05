@@ -37,34 +37,27 @@ recorded in a hash-chained, ed25519-signed audit ledger either side can verify.
 
 ## Build challenges — what went wrong, and how it was solved
 
-*(~260 words)*
+*(~160 words)*
 
-Development was smooth until deployment. Almost every real problem lived at the
+Development was smooth until deployment. Nearly every real problem lived at the
 local-versus-deployed boundary, and they shared one cause: **nothing made its own
 behaviour visible**, so failures stayed silent.
 
-**The front end was completely dead.** Both pages had a JavaScript syntax error
-committed to the repo — HTML entities inside the `esc()` helper had been decoded
-within the `<script>` tag, so `"&quot;"` became `"""`. No JavaScript ran at all.
-Because the pages still rendered, it looked cosmetic.
+**The front end was completely dead** — both pages had a JavaScript syntax error
+committed to the repo, so no script ran at all. Because the pages still rendered, it
+looked cosmetic.
 
-**The engine and API read different catalogs.** The engine used a static module, the
-API served Postgres, and they shared 2 of 12 SKUs. For the rest, cost resolved to
-`0` — so the merchant gate computed a **100% margin on everything** and the floor
-check could never reject. A ₹4,500 shoe was approved for a ₹1,500 discount, ₹300
-below cost, with the gate reporting "PASS".
+**The engine and API read different catalogs.** They shared 2 of 12 SKUs, so unit
+cost resolved to zero and the merchant gate reported a 100% margin on everything —
+the floor check could never reject. A ₹4,500 shoe was approved for a ₹1,500 discount,
+₹300 below cost.
 
-**Deployment 502'd repeatedly.** The request handler had no try/catch and no process
-guard, and in Node an unhandled rejection kills the process — so one failing query
-returned an empty body and every later request 502'd. That masked the real defects:
-`persistSession` had 21 columns against `$1..$20`, and `allowed_rails` is `TEXT[]`
-but was sent a JSON string. Neither had ever surfaced, because the pages that would
-have triggered them had dead JavaScript.
+**Deployment 502ʼd repeatedly.** The request handler had no error guard, and in Node
+an unhandled rejection kills the process — so one failing query took down the service
+and masked two SQL bugs beneath it.
 
-**The highest-leverage fix wasn't code.** With no local database every fix cost a
-deploy cycle. Standing up Postgres in Docker against the real migrations let me run
-the whole flow locally, and the remaining bugs fell out in one pass.
-
-**And I couldn't see it working.** The engine was strong but unobservable. The
-control room fixes that — 13 buyers against the real API, paced to be read, with
-budgets draining live.
+**The biggest fix was not code.** With no local database, every attempt cost a deploy
+cycle. Running Postgres in Docker against the real migrations let me reproduce
+everything locally, and the rest fell out in one pass — including the fact that I
+simply could not *see* the engine working, which is what the live control room now
+solves.
