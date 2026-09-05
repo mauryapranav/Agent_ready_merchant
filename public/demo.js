@@ -47,7 +47,8 @@ const FUNDER = {
   merchant_margin: "the merchant’s own margin",
 };
 
-const state = { catalog: [], bySku: {}, campaigns: [], policy: null, dailyCap: 0, dailySpent: 0, results: [] };
+const state = { catalog: [], bySku: {}, campaigns: [], policy: null, dailyCap: 0, dailySpent: 0,
+  results: [], autoRun: false };
 
 /* ---------- setup ---------- */
 
@@ -151,7 +152,7 @@ async function readJson(res, label) {
     return JSON.parse(text);
   } catch {
     throw new Error(`${label}: HTTP ${res.status}, response was not JSON — ` +
-      text.replace(/<[^>]*>/g, " ").replace(/s+/g, " ").trim().slice(0, 160));
+      text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160));
   }
 }
 
@@ -376,21 +377,50 @@ async function replay(buyer, data, pace) {
       <div class="od">${esc(narr?.event?.narration || data.reason || "")}</div></div>
     <div class="final">${data.finalTotalPaise != null ? rs(data.finalTotalPaise) : "&mdash;"}</div>
   </div>`;
-  await sleep(pace * 2.2);
+  // In manual mode the advance prompt provides the beat; only pause here when playing out.
+  await sleep(state.autoRun ? pace * 2.2 : 120);
 }
 
-/* Readable for the first few, then accelerating — the point of the later buyers is the
- * aggregate, not the individual narration. */
-function paceFor(i) {
-  if (i <= 2) return 800;
-  if (i <= 4) return 380;
-  return 150;
+/* Presenter-paced by default: beats land slowly enough to talk over, and the run holds at each
+ * buyer's outcome until it is advanced. "Play the rest" hands the remainder back to the clock. */
+function paceFor() {
+  return state.autoRun ? 260 : 700;
+}
+
+/* Resolves when the presenter advances. Returns true if they asked for the rest to play out. */
+function waitForAdvance(index) {
+  return new Promise((resolve) => {
+    const remaining = ROSTER.length - index - 1;
+    const host = document.createElement("div");
+    host.className = "advance";
+    host.innerHTML = `
+      <button id="next-buyer">Next buyer &rarr; ${esc(ROSTER[index + 1].name)}</button>
+      <button class="ghost" id="play-rest">Play the remaining ${remaining} without stopping</button>
+      <span class="adv-hint">or press <kbd>Space</kbd></span>`;
+    $("#focus").appendChild(host);
+    host.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    const done = (auto) => {
+      document.removeEventListener("keydown", onKey);
+      host.remove();
+      state.autoRun = auto;
+      resolve();
+    };
+    const onKey = (e) => {
+      if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); done(false); }
+    };
+    host.querySelector("#next-buyer").addEventListener("click", () => done(false));
+    host.querySelector("#play-rest").addEventListener("click", () => done(true));
+    document.addEventListener("keydown", onKey);
+    host.querySelector("#next-buyer").focus();
+  });
 }
 
 async function run() {
   $("#run").disabled = true;
   $("#idle")?.remove();
   state.results = [];
+  state.autoRun = false;
 
   const queue = [];
   let failed = null;
@@ -404,7 +434,9 @@ async function run() {
 
   for (let i = 0; i < ROSTER.length; i++) {
     renderRoster(i);
-    $("#speed").textContent = i <= 2 ? "real time" : i <= 4 ? "faster" : "fast-forward";
+    $("#speed").textContent = state.autoRun
+      ? "playing out"
+      : `buyer ${i + 1} of ${ROSTER.length}`;
     while (queue.length <= i && !failed) await sleep(120);
     const data = queue[i];
     if (!data) {
@@ -414,7 +446,11 @@ async function run() {
       return;
     }
     state.results[i] = data;
-    await replay(ROSTER[i], data, paceFor(i));
+    await replay(ROSTER[i], data, paceFor());
+    renderRoster(i);
+    if (!state.autoRun && i < ROSTER.length - 1) {
+      await waitForAdvance(i);
+    }
   }
   await producer;
   renderRoster(-1);
