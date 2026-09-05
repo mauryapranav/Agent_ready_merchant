@@ -268,6 +268,39 @@ function send(res: import("node:http").ServerResponse, status: number, data: unk
   res.end(JSON.stringify(data));
 }
 
+/**
+ * Serves a file from public/, tolerating a missing one.
+ *
+ * These handlers run inside an async request callback, so a readFileSync that throws becomes an
+ * unhandled rejection and takes the whole process down — one request for a missing asset would
+ * 502 the entire service. Falls back to the source tree when the built copy is absent, which
+ * also covers a build that nested public/ inside dist/public/.
+ */
+function sendPublicFile(
+  res: import("node:http").ServerResponse,
+  name: string,
+  contentType: string
+): void {
+  const candidates = [
+    join(__dirname, "../../public", name),
+    join(__dirname, "../../public/public", name),
+    join(process.cwd(), "public", name),
+  ];
+  for (const path of candidates) {
+    try {
+      const body = readFileSync(path, "utf8");
+      res.writeHead(200, { "content-type": contentType });
+      res.end(body);
+      return;
+    } catch {
+      continue;
+    }
+  }
+  console.error("[static] not found in any candidate path:", name);
+  res.writeHead(404, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: "Not found: " + name }));
+}
+
 function sendError(res: import("node:http").ServerResponse, status: number, errors: ValidationError[]): void {
   send(res, status, { error: "Validation failed", details: errors });
 }
@@ -293,31 +326,23 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/console")) {
-    const html = readFileSync(join(__dirname, "../../public/index.html"), "utf8");
-    res.writeHead(200, { "content-type": "text/html" });
-    res.end(html);
+    sendPublicFile(res, "index.html", "text/html");
     return;
   }
 
   if (req.method === "GET" && url.pathname === "/buyer") {
-    const html = readFileSync(join(__dirname, "../../public/buyer.html"), "utf8");
-    res.writeHead(200, { "content-type": "text/html" });
-    res.end(html);
+    sendPublicFile(res, "buyer.html", "text/html");
     return;
   }
 
   if (req.method === "GET" && url.pathname === "/demo") {
-    const html = readFileSync(join(__dirname, "../../public/demo.html"), "utf8");
-    res.writeHead(200, { "content-type": "text/html" });
-    res.end(html);
+    sendPublicFile(res, "demo.html", "text/html");
     return;
   }
 
   // Explicit allowlist rather than a static directory handler: no path-traversal surface.
   if (req.method === "GET" && (url.pathname === "/demo.js" || url.pathname === "/demo-report.js" || url.pathname === "/metrics-data.js")) {
-    const js = readFileSync(join(__dirname, "../../public" + url.pathname), "utf8");
-    res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
-    res.end(js);
+    sendPublicFile(res, url.pathname.slice(1), "text/javascript; charset=utf-8");
     return;
   }
 
