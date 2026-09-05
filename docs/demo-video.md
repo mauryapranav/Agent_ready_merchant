@@ -9,7 +9,8 @@ recording with voice-over. Total target **4:50**, leaving buffer under 5:00.
 
 A checklist, in order. Skipping any of these costs you the demo.
 
-1. **Reset the merchant.** Run against Neon:
+1. **Reset the merchant.** This is the single most important step — a drained daily
+   budget silently removes Priya, the only buyer where the merchant pays. Run against Neon:
    ```sql
    DELETE FROM release_ledger WHERE merchant_id = 'merchant_settle_demo';
    UPDATE campaigns SET remaining_budget_paise = total_budget_paise WHERE merchant_id = 'merchant_settle_demo';
@@ -41,10 +42,10 @@ A checklist, in order. Skipping any of these costs you the demo.
 |---|------|--------|---------|
 | 1 | 0:00–0:35 | Hero | The claim and the problem |
 | 2 | 0:35–1:05 | Waterfall section | The mechanism, in four columns |
-| 3 | 1:05–2:35 | Live run | The proof — three buyers narrated |
+| 3 | 1:05–2:35 | Live run | The proof — narrate 1-3, 5, 6; fast-forward the rest |
 | 4 | 2:35–3:00 | Refusal section | Restraint as a feature |
 | 5 | 3:00–3:50 | Analytics | The economics |
-| 6 | 3:50–4:20 | History + expand | Auditability |
+| 6 | 3:50–4:20 | Protocol + history | Interop and auditability |
 | 7 | 4:20–4:50 | Try it / Governance | Extensibility and close |
 
 ---
@@ -102,11 +103,12 @@ outright by the floor."
 
 ### 3 — The live run · 1:05–2:35 — *the core of the video*
 
-> **[Click "Watch 8 AI buyers negotiate". The page scrolls to the control room.]**
+> **[Click "Watch 13 AI buyers negotiate". The page scrolls to the control room.]**
 
-"Eight AI buyers, arriving one at a time, against a real database and real payment
+"Thirteen AI buyers, arriving one at a time, against a real database and real payment
 rails. Nothing here is pre-recorded — and they share one campaign budget, which is
-why they have to run in sequence.
+why they have to run in sequence. The first seven walk every funding source; the
+rest put the same engine under adverse conditions.
 
 **Buyer 1 — Ananya.** *(let the beats play, ~8s)*
 
@@ -134,10 +136,27 @@ budget is spent.'*
 > So it falls through to the bank rail offer. Different funding, same close, still
 zero cost to the merchant. That is the waterfall doing its job under contention."
 
-> **[Click "Play the remaining 5 without stopping".]**
+> **[Press Space. Buyer 4 swaps to a cheaper equal. Press Space again.]**
 
-"The rest run through — a bundle swap, a case where the merchant does pay, and two
-that never close at all."
+**Buyer 5 — Priya.** *(name this one out loud)*
+
+> No campaign fits, no rail offer covers it, nothing comparable to swap to. So the
+waterfall reaches its last step and the merchant pays — eight hundred rupees straight
+out of margin, charged against the daily release budget. This is the only step that
+costs you anything, and the only one the floor can refuse outright.
+
+> **[Press Space.]**
+
+**Buyers 6 and 7 — Kavya and Rhea.** Both are already under budget, so there is
+nothing to rescue. Kavya declared *extras only from Jockey*, so the attachment is
+accepted and the cart re-consented. Rhea declared no such rule — so the same gate
+declines the upsell rather than quietly padding her basket.
+
+> **[Click "Play the remaining 6 without stopping".]**
+
+"The last six are the engine under stress — UPI declining then card succeeding, every
+rail declining, an offer expiring before acceptance, a cart tampered with after
+consent, and two refusals."
 
 ---
 
@@ -146,7 +165,7 @@ that never close at all."
 > **[The run lands on analytics. Don't dwell — scroll back to section 04 first,
 > or narrate over the analytics tiles.]**
 
-"Two of the eight never closed, and that is the system working.
+"Three of the thirteen never closed, and that is the system working.
 >
 > Arjun: the only discount big enough would have pushed margin under the twelve
 percent floor. The gate returned REJECT_FLOOR, offered a half-sized rescue instead,
@@ -170,17 +189,18 @@ rather than guess.
 > Revenue by buyer, coloured by which funding source closed it. Gross profit priced
 against real unit cost from the catalog — not modelled.
 >
-> **[Point at "What the same eight buyers would have earned".]**
+> **[Point at the counterfactual card.]**
 >
-> This is the one I'd look at. Same eight buyers, three policies. No rescue at all:
-about sixteen hundred rupees of gross profit. A blanket ten percent off: *less* —
-because it converts more but gives away margin on carts that would have closed
-anyway. Settle: seven thousand.
+> This is the one I'd look at. Same cohort, three policies. No rescue at all. A
+blanket ten percent off — which earns *less*, because it converts more but gives away
+margin on carts that would have closed anyway. And Settle, clear of both.
+>
+> Read the three figures straight off the card; they are computed from this run.
 >
 > **[Point at "When the merchant does pay".]**
 >
-> And here's the honest part — one session in eight actually cost the merchant
-money. Eight hundred rupees. Everything else was somebody else's budget."
+> And here's the honest part — one session actually cost the merchant money. Eight
+hundred rupees, Priya's price cut. Everything else was somebody else's budget."
 
 *If asked in Q&A: the counterfactual compares list price against each buyer's hard
 cap and ignores the stretch rule, which flatters the blanket arm — so the real gap
@@ -190,7 +210,17 @@ is wider than shown.*
 
 ### 6 — History and audit · 3:50–4:20
 
-> **[Scroll down within analytics to "Past transactions", or exit to section 09.]**
+> **[Exit analytics. Section 09 — Protocol — then section 10, History.]**
+
+"Two endpoints, fetched live in the browser, not mocked. `/acp/feed` is the agentic
+product feed — every SKU with price, the rails it accepts, and whether it is eligible
+for rescue or attachment. That is what a buying agent reads before it ever opens a
+session.
+
+> And `/.well-known/jwks.json` is the ed25519 public key set. Counter-offers and both
+ledger tips are signed; this is how a counterparty verifies them without trusting us.
+
+> **[Scroll to section 10.]**
 
 "Every session is on the record — settlements and refusals alike, read back from the
 sessions table, so it survives a restart.
